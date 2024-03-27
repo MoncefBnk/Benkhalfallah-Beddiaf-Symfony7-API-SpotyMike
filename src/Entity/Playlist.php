@@ -114,4 +114,11 @@ class Playlist
 
         return $this;
     }
+    public function playlistSerializer()
+    {
+
+        return [
+            'name' => $this->getTitle(),
+        ];
+    }
 }
