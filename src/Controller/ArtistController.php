@@ -22,7 +22,7 @@ class ArtistController extends AbstractController
     #[Route('/artist/{userId}', name: 'app_create_artist', methods: ['POST'])]
     public function createArtist(Request $request, int $userId): JsonResponse
     {
-        // Retrieve the User object associated with the provided userId
+        
         $user = $this->entityManager->getRepository(User::class)->find($userId);
 
         if (!$user) {
@@ -31,14 +31,14 @@ class ArtistController extends AbstractController
             ], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        // Create a new Artist object and associate it with the User
-        $artist = new Artist();
-        $artist->setUserIdUser($user); // Set the User object
 
-        // Decode the JSON request body to get artist data
+        $artist = new Artist();
+        $artist->setUserIdUser($user); 
+
+      
         $data = json_decode($request->getContent(), true);
 
-        // Set other properties of the Artist
+  
         $artist->setFullname($data['fullname'] ?? null);
         $artist->setLabel($data['label'] ?? null);
         $artist->setDescription($data['description'] ?? null);
@@ -82,10 +82,10 @@ class ArtistController extends AbstractController
             ], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        // Decode the JSON request body to get artist data
+      
         $data = json_decode($request->getContent(), true);
 
-        // Update artist properties if they exist in the request data
+
         if (isset($data['fullname'])) {
             $artist->setFullname($data['fullname']);
         }

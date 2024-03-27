@@ -24,18 +24,18 @@ class SongController extends AbstractController
     {
         $data = json_decode($request->getContent(), true);
 
-        // Create a new Song object
+     
         $song = new Song();
 
-        // Set song properties
+   
         $song->setIdSong($data['idSong'] ?? null);
         $song->setTitle($data['title'] ?? null);
         $song->setUrl($data['url'] ?? null);
         $song->setCover($data['cover'] ?? null);
-        $song->setVisibility($data['visibility'] ?? true); // Assuming default is true
-        $song->setCreateAt(new \DateTimeImmutable()); // Set current datetime
+        $song->setVisibility($data['visibility'] ?? true); 
+        $song->setCreateAt(new \DateTimeImmutable()); 
 
-        // Add associated artists if provided
+        
         if (isset($data['artistIds']) && is_array($data['artistIds'])) {
             foreach ($data['artistIds'] as $artistId) {
                 $artist = $this->entityManager->getRepository(Artist::class)->find($artistId);
