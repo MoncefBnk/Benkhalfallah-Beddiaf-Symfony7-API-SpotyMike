@@ -150,4 +150,11 @@ class Artist
 
         return $this;
     }
+    public function artistSerializer()
+    {
+
+        return [
+            'name' => $this->getFullname(),
+        ];
+    }
 }
