@@ -171,4 +171,11 @@ class Song
 
         return $this;
     }
+    public function songSerializer()
+    {
+
+        return [
+            'name' => $this->getTitle(),
+        ];
+    }
 }
