@@ -54,24 +54,6 @@ class ArtistController extends AbstractController
     }
 
 
-    // #[Route('/artist/{id}', name: 'app_get_artist', methods: ['GET'])]
-    // public function getArtist(int $id): JsonResponse
-    // {
-    //     $artist = $this->entityManager->getRepository(Artist::class)->find($id);
-
-    //     if (!$artist) {
-    //         return $this->json([
-    //             'message' => 'Artist not found',
-    //         ], JsonResponse::HTTP_NOT_FOUND);
-    //     }
-
-    //     return $this->json([
-    //         'artist' => $artist->artistSerializer(),
-    //         'message' => 'Artist found!',
-    //         'path' => 'src/Controller/ArtistController.php',
-    //     ]);
-    // }
-
     #[Route('/artists', name: 'app_get_artists', methods: ['GET'])]
     public function getAllArtists(): JsonResponse
     {
