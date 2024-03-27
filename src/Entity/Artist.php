@@ -13,7 +13,7 @@ class Artist
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Column] 
     private ?int $id = null;
 
     #[ORM\OneToOne(inversedBy: 'artist', cascade: ['persist', 'remove'])]

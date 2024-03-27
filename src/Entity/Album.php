@@ -18,7 +18,7 @@ class Album
     #[ORM\Column(length: 90)]
     private ?string $idAlbum = null;
 
-    #[ORM\Column(length: 90)]
+    #[ORM\Column(length: 95)]
     private ?string $nom = null;
 
     #[ORM\Column(length: 20)]
