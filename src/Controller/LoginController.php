@@ -39,6 +39,7 @@ class LoginController extends AbstractController
             'path' => 'src/Controller/LoginController.php',
         ]);
     }
+
     #[Route('/user', name: 'app_create_user', methods: ['POST'])]
     public function createUser(Request $request): JsonResponse
     {
@@ -62,4 +63,54 @@ class LoginController extends AbstractController
             'path' => 'src/Controller/UserController.php',
         ], Response::HTTP_CREATED);
     }
+
+    #[Route('/user/{id}', name: 'app_update_user', methods: ['PUT'])]
+    public function updateUser(Request $request, int $id): JsonResponse
+    {
+        $userRepository = $this->entityManager->getRepository(User::class);
+        $user = $userRepository->find($id);
+
+        if (!$user) {
+            return $this->json([
+                'message' => 'User not found',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $requestData = json_decode($request->getContent(), true);
+
+        $user->setName($requestData['name'] ?? $user->getName())
+            ->setEmail($requestData['email'] ?? $user->getEmail())
+            ->setEncrypte($requestData['encrypte'] ?? $user->getEncrypte())
+            ->setTel($requestData['tel'] ?? $user->getTel())
+            ->setUpdateAt(new \DateTime());
+
+        $this->entityManager->flush();
+
+        return $this->json([
+            'user' => $user->userSerializer(),
+            'message' => 'User updated successfully!',
+            'path' => 'src/Controller/UserController.php',
+        ]);
+    }
+    #[Route('/user/{id}', name: 'app_delete_user', methods: ['DELETE'])]
+    public function deleteUser(int $id): JsonResponse
+    {
+        $userRepository = $this->entityManager->getRepository(User::class);
+        $user = $userRepository->find($id);
+
+        if (!$user) {
+            return $this->json([
+                'message' => 'User not found',
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        $this->entityManager->remove($user);
+        $this->entityManager->flush();
+
+        return $this->json([
+            'message' => 'User deleted successfully!',
+            'path' => 'src/Controller/UserController.php',
+        ]);
+    }
+
 }
