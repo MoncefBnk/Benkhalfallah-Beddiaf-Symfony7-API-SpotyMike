@@ -144,4 +144,12 @@ class User
 
         return $this;
     }
+
+    public function userSerializer()
+    {
+
+        return [
+            'name' => $this->getName(),
+        ];
+    }
 }
