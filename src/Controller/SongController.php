@@ -20,41 +20,46 @@ class SongController extends AbstractController
     }
 
     #[Route('/song', name: 'app_create_song', methods: ['POST'])]
-    public function createSong(Request $request): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-
-     
-        $song = new Song();
-
-   
-        $song->setIdSong($data['idSong'] ?? null);
-        $song->setTitle($data['title'] ?? null);
-        $song->setUrl($data['url'] ?? null);
-        $song->setCover($data['cover'] ?? null);
-        $song->setVisibility($data['visibility'] ?? true); 
-        $song->setCreateAt(new \DateTimeImmutable()); 
-
-        
-        if (isset($data['artistIds']) && is_array($data['artistIds'])) {
-            foreach ($data['artistIds'] as $artistId) {
-                $artist = $this->entityManager->getRepository(Artist::class)->find($artistId);
-                if ($artist) {
-                    $song->addArtistIdUser($artist);
-                }
-            }
-        }
-
-        $this->entityManager->persist($song);
-        $this->entityManager->flush();
-
-        return $this->json([
-            'song' => $song->songSerializer(),
-            'message' => 'Song created successfully!',
-            'path' => 'src/Controller/SongController.php',
-        ]);
+public function createSong(Request $request): JsonResponse
+{
+    $requestData = $request->request->all();
+    
+    if ($request->headers->get('content-type') === 'application/json') {
+        $requestData = json_decode($request->getContent(), true);
     }
 
+    if (!isset($requestData['idSong'], $requestData['title'])) {
+        return $this->json(['message' => 'Required fields are missing!'], 400);
+    }
+
+    $song = new Song();
+    $song->setIdSong($requestData['idSong']);
+    $song->setTitle($requestData['title']);
+    $song->setUrl($requestData['url'] ?? null);
+    $song->setCover($requestData['cover'] ?? null);
+    $song->setVisibility($requestData['visibility'] ?? true); 
+    $song->setCreateAt(new \DateTimeImmutable()); 
+
+    if (isset($requestData['artistIds']) && is_array($requestData['artistIds'])) {
+        foreach ($requestData['artistIds'] as $artistId) {
+            $artist = $this->entityManager->getRepository(Artist::class)->find($artistId);
+            if ($artist) {
+                $song->addArtistIdUser($artist);
+            }
+        }
+    }
+
+    $this->entityManager->persist($song);
+    $this->entityManager->flush();
+
+    return $this->json([
+        'song' => $song->songSerializer(),
+        'message' => 'Song created successfully!',
+        'path' => 'src/Controller/SongController.php',
+    ]);
+}
+
+    
     #[Route('/song/{id}', name: 'app_update_song', methods: ['PUT'])]
     public function updateSong(Request $request, int $id): JsonResponse
     {
