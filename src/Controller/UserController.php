@@ -9,13 +9,15 @@ use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class UserController extends AbstractController
 {
     private $entityManager;
     private $repository;
 
-    public function __construct(EntityManagerInterface $entityManager){
+    public function __construct(EntityManagerInterface $entityManager)
+    {
         $this->entityManager =  $entityManager;
         $this->repository =  $entityManager->getRepository(User::class);
     }
@@ -38,35 +40,46 @@ class UserController extends AbstractController
     }
     #[Route('/user', name: 'app_create_user', methods: ['POST'])]
     public function createUser(Request $request): JsonResponse
-    {
-        // Parse request data based on content type
-        $requestData = $request->request->all();
+{
     
-        if ($request->headers->get('content-type') === 'application/json') {
-            $requestData = json_decode($request->getContent(), true);
-        }
-    
-        // Create a new user instance
-        $user = new User();
-        $user->setIdUser($requestData['idUser'] ?? null)
-            ->setName($requestData['name'] ?? null)
-            ->setEmail($requestData['email'] ?? null)
-            ->setEncrypte($requestData['encrypte'] ?? null)
-            ->setTel($requestData['tel'] ?? null)
-            ->setCreateAt(new \DateTimeImmutable())
-            ->setUpdateAt(new \DateTime());
-    
-        // Persist the user entity
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
-    
-        // Return response
-        return $this->json([
-            'user' => $user->userSerializer(),
-            'message' => 'User created successfully!',
-            'path' => 'src/Controller/UserController.php',
-        ], Response::HTTP_CREATED);
+    $requestData = $request->request->all();
+
+    if ($request->headers->get('content-type') === 'application/json') {
+        $requestData = json_decode($request->getContent(), true);
     }
+
+    
+    $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
+    if ($existingUser) {
+        throw new BadRequestHttpException('Email already exists');
+    }
+
+    $existingUserWithIdUser = $this->repository->findOneBy(['idUser' => $requestData['idUser']]);
+    if ($existingUserWithIdUser) {
+        throw new BadRequestHttpException('idUser already exists');
+    }
+
+
+    $user = new User();
+    $user->setIdUser($requestData['idUser'] ?? null)
+        ->setName($requestData['name'] ?? null)
+        ->setEmail($requestData['email'] ?? null)
+        ->setEncrypte($requestData['encrypte'] ?? null)
+        ->setTel($requestData['tel'] ?? null)
+        ->setCreateAt(new \DateTimeImmutable())
+        ->setUpdateAt(new \DateTime());
+
+
+    $this->entityManager->persist($user);
+    $this->entityManager->flush();
+
+   
+    return $this->json([
+        'user' => $user->userSerializer(),
+        'message' => 'User created successfully!',
+        'path' => 'src/Controller/UserController.php',
+    ], Response::HTTP_CREATED);
+}
     #[Route('/user/{id}', name: 'app_update_user', methods: ['PUT'])]
     public function updateUser(Request $request, int $id): JsonResponse
     {
