@@ -14,8 +14,8 @@ class User
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-
-    // #[ORM\Id]
+    
+        // #[ORM\Id]
     #[ORM\Column(length: 90)]
     private ?string $idUser = null;
 
@@ -54,7 +54,7 @@ class User
     {
         $this->idUser = $idUser;
 
-        return $this;
+    return $this;
     }
 
     public function getName(): ?string
@@ -176,7 +176,6 @@ class User
         return [
             'name' => $this->getName(),
             'email' => $this->getEmail(),
-            'password' => $this->getEncrypte(),
             'tel' => $this->getTel(),
             'created at' =>$this->getCreateAt(),
             'updated at' =>$this->getUpdateAt(),
