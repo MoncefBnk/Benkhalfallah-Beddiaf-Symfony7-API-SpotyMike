@@ -150,6 +150,12 @@ class User
 
         return [
             'name' => $this->getName(),
+            'email' => $this->getEmail(),
+            'password' => $this->getEncrypte(),
+            'tel' => $this->getTel(),
+            'created at' =>$this->getCreateAt(),
+            'updated at' =>$this->getUpdateAt(),
+
         ];
     }
 }
