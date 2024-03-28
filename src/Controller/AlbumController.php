@@ -70,7 +70,7 @@ class AlbumController extends AbstractController
         $album->setCover($requestData['cover'] ?? null);
         $album->setYear($requestData['year'] ?? 2024);
 
-        // Récupérer l'artiste associé à partir de son identifiant
+        
         $artist = $this->entityManager->getRepository(Artist::class)->find($requestData['artistId']);
         if (!$artist) {
             return $this->json(['message' => 'Artiste non trouvé!'], 404);
@@ -78,7 +78,7 @@ class AlbumController extends AbstractController
 
         $album->setArtistUserIdUser($artist);
 
-        // Enregistrer l'album dans la base de données
+        
         $this->entityManager->persist($album);
         $this->entityManager->flush();
 
@@ -100,7 +100,7 @@ class AlbumController extends AbstractController
     
         $requestData = $request->request->all();
     
-        // Update album properties
+        
         if (isset($requestData['idAlbum'])) {
             $album->setIdAlbum($requestData['idAlbum']);
         }
@@ -110,7 +110,7 @@ class AlbumController extends AbstractController
         if (isset($requestData['categ'])) {
             $album->setCateg($requestData['categ']);
         }
-        // Update other album properties as needed
+       
     
         $this->entityManager->flush();
     

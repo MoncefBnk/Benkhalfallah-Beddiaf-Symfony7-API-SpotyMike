@@ -20,47 +20,53 @@ class UserController extends AbstractController
         $this->repository =  $entityManager->getRepository(User::class);
     }
 
-    #[Route('/user', name: 'app_user', methods: ['GET'])]
-    public function getAllUsers(Request $request): JsonResponse
+    #[Route('/users', name: 'app_get_all_users', methods: ['GET'])]
+    public function getAllUsers(): JsonResponse
     {
-           $users = $this->repository->findAll();
+        $users = $this->entityManager->getRepository(User::class)->findAll();
+
         $serializedUsers = [];
-    
         foreach ($users as $user) {
-        $serializedUsers[] = $user->userSerializer();
-    }
-        $user  = $this->repository->findAll();
+            $serializedUsers[] = $user->userSerializer();
+        }
+
         return $this->json([
-            'user' => $user,
-            'data' => $request->getContent(),
-            'message' => 'All Users!',
-            'path' => 'src/Controller/UserController.php',
+            'users' => $serializedUsers,
+            'message' => 'All songs retrieved successfully!',
+            'path' => 'src/Controller/SongController.php',
         ]);
     }
     #[Route('/user', name: 'app_create_user', methods: ['POST'])]
     public function createUser(Request $request): JsonResponse
     {
-        $requestData = json_decode($request->getContent(), true);
-
+        // Parse request data based on content type
+        $requestData = $request->request->all();
+    
+        if ($request->headers->get('content-type') === 'application/json') {
+            $requestData = json_decode($request->getContent(), true);
+        }
+    
+        // Create a new user instance
         $user = new User();
-        $user->setIdUser($requestData['idUser'])
-            ->setName($requestData['name'])
-            ->setEmail($requestData['email'])
-            ->setEncrypte($requestData['encrypte'])
-            ->setTel($requestData['tel'])
+        $user->setIdUser($requestData['idUser'] ?? null)
+            ->setName($requestData['name'] ?? null)
+            ->setEmail($requestData['email'] ?? null)
+            ->setEncrypte($requestData['encrypte'] ?? null)
+            ->setTel($requestData['tel'] ?? null)
             ->setCreateAt(new \DateTimeImmutable())
             ->setUpdateAt(new \DateTime());
-
+    
+        // Persist the user entity
         $this->entityManager->persist($user);
         $this->entityManager->flush();
-
+    
+        // Return response
         return $this->json([
             'user' => $user->userSerializer(),
             'message' => 'User created successfully!',
             'path' => 'src/Controller/UserController.php',
         ], Response::HTTP_CREATED);
     }
-
     #[Route('/user/{id}', name: 'app_update_user', methods: ['PUT'])]
     public function updateUser(Request $request, int $id): JsonResponse
     {
