@@ -10,6 +10,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Album;
 use App\Entity\Artist;
 use App\Repository\AlbumRepository;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class AlbumController extends AbstractController
 {
@@ -56,39 +57,49 @@ class AlbumController extends AbstractController
     }
 
     #[Route('/album', name: 'app_create_album', methods: ['POST'])]
-    public function createAlbum(Request $request): JsonResponse
+public function createAlbum(Request $request): JsonResponse
 {
     $requestData = $request->request->all();
 
     if (!isset($requestData['idAlbum'], $requestData['nom'], $requestData['categ'], $requestData['artistId'])) {
         return $this->json(['message' => 'Des champs requis sont manquants!'], 400);
     }
-        $album = new Album();
-        $album->setIdAlbum($requestData['idAlbum']);
-        $album->setNom($requestData['nom']);
-        $album->setCateg($requestData['categ']);
-        $album->setCover($requestData['cover'] ?? null);
-        $album->setYear($requestData['year'] ?? 2024);
 
-        
-        $artist = $this->entityManager->getRepository(Artist::class)->find($requestData['artistId']);
-        if (!$artist) {
-            return $this->json(['message' => 'Artiste non trouvé!'], 404);
-        }
-
-        $album->setArtistUserIdUser($artist);
-
-        
-        $this->entityManager->persist($album);
-        $this->entityManager->flush();
-
-        return $this->json([
-            'album' => $album->songSerializer(),
-            'message' => 'Album créé avec succès!',
-            'path' => 'src/Controller/AlbumController.php',
-        ]);
+    // Check if album id (idAlbum) already exists
+    $existingAlbumWithId = $this->entityManager->getRepository(Album::class)->findOneBy(['idAlbum' => $requestData['idAlbum']]);
+    if ($existingAlbumWithId) {
+        throw new BadRequestHttpException('idAlbum already exists');
     }
 
+    // Check if album name (nom) already exists
+    $existingAlbumWithName = $this->entityManager->getRepository(Album::class)->findOneBy(['nom' => $requestData['nom']]);
+    if ($existingAlbumWithName) {
+        throw new BadRequestHttpException('Album name already exists');
+    }
+
+    $album = new Album();
+    $album->setIdAlbum($requestData['idAlbum']);
+    $album->setNom($requestData['nom']);
+    $album->setCateg($requestData['categ']);
+    $album->setCover($requestData['cover'] ?? null);
+    $album->setYear($requestData['year'] ?? 2024);
+
+    $artist = $this->entityManager->getRepository(Artist::class)->find($requestData['artistId']);
+    if (!$artist) {
+        return $this->json(['message' => 'Artiste non trouvé!'], 404);
+    }
+
+    $album->setArtistUserIdUser($artist);
+
+    $this->entityManager->persist($album);
+    $this->entityManager->flush();
+
+    return $this->json([
+        'album' => $album->songSerializer(),
+        'message' => 'Album créé avec succès!',
+        'path' => 'src/Controller/AlbumController.php',
+    ]);
+}
     #[Route('/album/{id}', name: 'app_update_album', methods: ['PUT'])]
     public function updateAlbum(Request $request, int $id): JsonResponse
     {
