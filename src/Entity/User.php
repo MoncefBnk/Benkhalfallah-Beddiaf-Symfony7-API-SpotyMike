@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 class User
@@ -97,12 +98,25 @@ class User
         return $this->tel;
     }
 
+    private function validationTel(?string $numero): bool {
+        if ($numero === null) {
+            return true;
+        }
+        $regex = '/^0[1-9](?:[ .-]?[0-9]{2}){4}$/'; 
+        return preg_match($regex, $numero) === 1;
+    }
+
     public function setTel(?string $tel): static
     {
+        if (!$this->validationTel($tel)) {
+            throw new \InvalidArgumentException("Numéro de téléphone invalide. Veuillez entrer un numéro de téléphone français valide.");
+        }
         $this->tel = $tel;
 
         return $this;
     }
+
+    
 
     public function getCreateAt(): ?\DateTimeImmutable
     {
