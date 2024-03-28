@@ -9,6 +9,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Song;
 use App\Entity\Artist;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class SongController extends AbstractController
 {
@@ -19,7 +20,9 @@ class SongController extends AbstractController
         $this->entityManager = $entityManager;
     }
 
-    #[Route('/song', name: 'app_create_song', methods: ['POST'])]
+    
+
+#[Route('/song', name: 'app_create_song', methods: ['POST'])]
 public function createSong(Request $request): JsonResponse
 {
     $requestData = $request->request->all();
@@ -28,6 +31,19 @@ public function createSong(Request $request): JsonResponse
         $requestData = json_decode($request->getContent(), true);
     }
 
+    // Check if idSong already exists
+    $existingSongById = $this->entityManager->getRepository(Song::class)->findOneBy(['idSong' => $requestData['idSong']]);
+    if ($existingSongById) {
+        throw new BadRequestHttpException('Song with this idSong already exists');
+    }
+
+    // Check if title already exists
+    $existingSongByTitle = $this->entityManager->getRepository(Song::class)->findOneBy(['title' => $requestData['title']]);
+    if ($existingSongByTitle) {
+        throw new BadRequestHttpException('Song with this title already exists');
+    }
+
+    // Validate required fields
     if (!isset($requestData['idSong'], $requestData['title'])) {
         return $this->json(['message' => 'Required fields are missing!'], 400);
     }
