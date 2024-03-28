@@ -74,8 +74,19 @@ class User
         return $this->email;
     }
 
+    private function validationEmail(?string $email): bool {
+        if ($email === null) {
+            return true;
+        }
+        $regex = '/^[\w.-]+@[a-zA-Z\d-]+\.[a-zA-Z]{2,}$/';
+        return preg_match($regex, $email) === 1;
+    }
+
     public function setEmail(string $email): static
     {
+        if (!$this->validationEmail($email)) {
+            throw new \InvalidArgumentException("Adresse e-mail invalide. Veuillez entrer une adresse email valide.");
+        }
         $this->email = $email;
 
         return $this;
