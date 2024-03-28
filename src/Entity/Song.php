@@ -180,6 +180,7 @@ class Song
             'cover' => $this->getCover(),
             'visiblity' => $this->isVisibility(),
             'url' => $this->getUrl(),
+            'album' => $this->getAlbum() ?  $this->getAlbum()->albumSerializer() : [],
         ];
     }
 }
