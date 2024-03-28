@@ -147,4 +147,11 @@ class Album
 
         return $this;
     }
+    public function songSerializer()
+    {
+
+        return [
+            'name' => $this->getNom(),
+        ];
+    }
 }
