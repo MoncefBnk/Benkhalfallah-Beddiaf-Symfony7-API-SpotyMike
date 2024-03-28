@@ -152,6 +152,10 @@ class Album
 
         return [
             'name' => $this->getNom(),
+            'category' => $this->getCateg(),
+            'cover' => $this->getCover(),
+            'year' => $this->getYear(),
+            // 'artist' => $this->getArtistUserIdUser(),
         ];
     }
 }
