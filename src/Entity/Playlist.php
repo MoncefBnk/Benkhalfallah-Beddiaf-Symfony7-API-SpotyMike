@@ -119,6 +119,9 @@ class Playlist
 
         return [
             'name' => $this->getTitle(),
+            'visibility' => $this->isPublic(),
+            'created at' => $this->getCreateAt(),
+            'updated at' => $this->getUpdateAt(),
         ];
     }
 }

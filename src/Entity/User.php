@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 class User
@@ -13,8 +14,8 @@ class User
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-
-    // #[ORM\Id]
+    
+        // #[ORM\Id]
     #[ORM\Column(length: 90)]
     private ?string $idUser = null;
 
@@ -53,7 +54,7 @@ class User
     {
         $this->idUser = $idUser;
 
-        return $this;
+    return $this;
     }
 
     public function getName(): ?string
@@ -73,8 +74,19 @@ class User
         return $this->email;
     }
 
+    private function validationEmail(?string $email): bool {
+        if ($email === null) {
+            return true;
+        }
+        $regex = '/^[\w.-]+@[a-zA-Z\d-]+\.[a-zA-Z]{2,}$/';
+        return preg_match($regex, $email) === 1;
+    }
+
     public function setEmail(string $email): static
     {
+        if (!$this->validationEmail($email)) {
+            throw new \InvalidArgumentException("Adresse e-mail invalide. Veuillez entrer une adresse email valide.");
+        }
         $this->email = $email;
 
         return $this;
@@ -97,12 +109,25 @@ class User
         return $this->tel;
     }
 
+    private function validationTel(?string $numero): bool {
+        if ($numero === null) {
+            return true;
+        }
+        $regex = '/^0[1-9](?:[ .-]?[0-9]{2}){4}$/'; 
+        return preg_match($regex, $numero) === 1;
+    }
+
     public function setTel(?string $tel): static
     {
+        if (!$this->validationTel($tel)) {
+            throw new \InvalidArgumentException("Numéro de téléphone invalide. Veuillez entrer un numéro de téléphone français valide.");
+        }
         $this->tel = $tel;
 
         return $this;
     }
+
+    
 
     public function getCreateAt(): ?\DateTimeImmutable
     {
@@ -150,6 +175,11 @@ class User
 
         return [
             'name' => $this->getName(),
+            'email' => $this->getEmail(),
+            'tel' => $this->getTel(),
+            'created at' =>$this->getCreateAt(),
+            'updated at' =>$this->getUpdateAt(),
+
         ];
     }
 }

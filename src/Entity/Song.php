@@ -176,6 +176,10 @@ class Song
 
         return [
             'name' => $this->getTitle(),
+            'url' => $this->getUrl(),
+            'cover' => $this->getCover(),
+            'visiblity' => $this->isVisibility(),
+            'url' => $this->getUrl(),
         ];
     }
 }
