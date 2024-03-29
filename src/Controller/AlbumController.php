@@ -77,6 +77,17 @@ public function createAlbum(Request $request): JsonResponse
         throw new BadRequestHttpException('Album name already exists');
     }
 
+    switch ($requestData) {
+        case 'idAlbum' && strlen($requestData['idAlbum']) > 90:
+            throw new BadRequestHttpException('Album ID name too long');
+        case 'nom' && strlen($requestData['nom']) > 95:
+            throw new BadRequestHttpException('Name too long');
+        case 'categ' && strlen($requestData['categ']) > 20:
+            throw new BadRequestHttpException('Category name too long');
+        case 'cover' && strlen($requestData['cover']) > 125:
+            throw new BadRequestHttpException('Cover name too long');
+    }
+
     $album = new Album();
     $album->setIdAlbum($requestData['idAlbum']);
     $album->setNom($requestData['nom']);
