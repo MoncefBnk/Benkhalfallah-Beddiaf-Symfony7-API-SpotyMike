@@ -48,6 +48,17 @@ public function createSong(Request $request): JsonResponse
         return $this->json(['message' => 'Required fields are missing!'], 400);
     }
 
+    switch ($requestData) {
+        case 'idSong' && strlen($requestData['idSong']) > 90:
+            throw new BadRequestHttpException('idSong too long');
+        case 'title' && strlen($requestData['title']) > 255:
+            throw new BadRequestHttpException('Title too long');
+        case 'url' && strlen($requestData['url']) > 125:
+            throw new BadRequestHttpException('URL too long');
+        case 'cover' && strlen($requestData['cover']) > 125:
+            throw new BadRequestHttpException('Cover name too long');
+    }
+
     $song = new Song();
     $song->setIdSong($requestData['idSong']);
     $song->setTitle($requestData['title']);

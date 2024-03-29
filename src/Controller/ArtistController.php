@@ -39,8 +39,14 @@ class ArtistController extends AbstractController
         if ($request->headers->get('content-type') === 'application/json') {
             $requestData = json_decode($request->getContent(), true);
         }
-    
-    
+      
+        switch ($requestData) {
+          case 'fullname' && strlen($requestData['fullname']) > 90:
+              throw new BadRequestHttpException('Artist name too long');
+          case 'label' && strlen($requestData['label']) > 90:
+              throw new BadRequestHttpException('Label name too long');
+      }
+
         // Create a new artist instance
         $artist = new Artist();
         $artist->setUserIdUser($user);
@@ -59,7 +65,6 @@ class ArtistController extends AbstractController
             'path' => 'src/Controller/ArtistController.php',
         ]);
     }
-
 
     #[Route('/artists', name: 'app_get_artists', methods: ['GET'])]
     public function getAllArtists(): JsonResponse

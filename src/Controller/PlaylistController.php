@@ -61,10 +61,6 @@ public function createPlaylist(Request $request): JsonResponse
 {
     $requestData = $request->request->all();
 
-    if ($request->headers->get('content-type') === 'application/json') {
-        $requestData = json_decode($request->getContent(), true);
-    }
-
     // Check if idPlaylist already exists
     $existingPlaylistById = $this->playlistRepository->findOneBy(['idPlaylist' => $requestData['idPlaylist']]);
     if ($existingPlaylistById) {
@@ -80,6 +76,13 @@ public function createPlaylist(Request $request): JsonResponse
     // Validate required fields
     if (!isset($requestData['idPlaylist'], $requestData['title'])) {
         return $this->json(['message' => 'Required fields are missing!'], 400);
+    }
+  
+    switch ($requestData) {
+      case 'idPlaylist' && strlen($requestData['idPlaylist']) > 90:
+        throw new BadRequestHttpException('Playlist ID too long');
+      case 'title' && strlen($requestData['title']) > 50:
+        throw new BadRequestHttpException('Title too long');
     }
 
     // Create a new playlist instance

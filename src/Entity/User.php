@@ -112,7 +112,7 @@ class User
         if ($email === null) {
             return true;
         }
-        $regex = '/^[\w.-]+@[a-zA-Z\d-]+\.[a-zA-Z]{2,}$/';
+        $regex = '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/';
         return preg_match($regex, $email) === 1;
     }
 
