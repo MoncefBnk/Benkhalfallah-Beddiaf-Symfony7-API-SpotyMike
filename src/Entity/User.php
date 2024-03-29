@@ -36,9 +36,9 @@ class User
 
     #[ORM\Column(length: 55)]
     private ?string $sexe = null;
-
-    #[ORM\Column(length: 55)]
-    private ?string $dateBirth = null;
+    
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    private ?\DateTimeInterface $dateBirth = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createAt = null;
@@ -49,17 +49,7 @@ class User
     #[ORM\OneToOne(mappedBy: 'User_idUser', cascade: ['persist', 'remove'])]
     private ?Artist $artist = null;
 
-    public function getBirthDate(): ?string
-    {
-        return $this->dateBirth;
-    }
-
-    public function setBirthDate(string $dateBirth): static
-    {
-        $this->dateBirth = $dateBirth;
-
-        return $this;
-    }
+   
 
     public function getId(): ?int
     {
@@ -196,6 +186,18 @@ class User
     public function setUpdateAt(\DateTimeInterface $updateAt): static
     {
         $this->updateAt = $updateAt;
+
+        return $this;
+    }
+
+    public function getBirthDate(): ?\DateTimeInterface
+    {
+        return $this->dateBirth;
+    }
+
+    public function setBirthDate(?\DateTimeInterface $dateBirth): static
+    {
+        $this->dateBirth = $dateBirth;
 
         return $this;
     }
