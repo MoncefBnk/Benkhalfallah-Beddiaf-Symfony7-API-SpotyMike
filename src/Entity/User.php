@@ -14,22 +14,31 @@ class User
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-    
-        // #[ORM\Id]
+
+    // #[ORM\Id]
     #[ORM\Column(length: 90)]
     private ?string $idUser = null;
 
     #[ORM\Column(length: 55)]
-    private ?string $name = null;
+    private ?string $firstname = null;
+
+    #[ORM\Column(length: 55)]
+    private ?string $lastname = null;
 
     #[ORM\Column(length: 80)]
     private ?string $email = null;
 
+    #[ORM\Column(length: 15, nullable: true)]
+    private ?string $tel = null;
+
     #[ORM\Column(length: 90)]
     private ?string $encrypte = null;
 
-    #[ORM\Column(length: 15, nullable: true)]
-    private ?string $tel = null;
+    #[ORM\Column(length: 55)]
+    private ?string $sexe = null;
+
+    #[ORM\Column(length: 55)]
+    private ?string $dateBirth = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createAt = null;
@@ -39,6 +48,18 @@ class User
 
     #[ORM\OneToOne(mappedBy: 'User_idUser', cascade: ['persist', 'remove'])]
     private ?Artist $artist = null;
+
+    public function getBirthDate(): ?string
+    {
+        return $this->dateBirth;
+    }
+
+    public function setBirthDate(string $dateBirth): static
+    {
+        $this->dateBirth = $dateBirth;
+
+        return $this;
+    }
 
     public function getId(): ?int
     {
@@ -54,17 +75,29 @@ class User
     {
         $this->idUser = $idUser;
 
-    return $this;
+        return $this;
     }
 
-    public function getName(): ?string
+    public function getLastname(): ?string
     {
-        return $this->name;
+        return $this->lastname;
     }
 
-    public function setName(string $name): static
+    public function setLastname(string $lastname): static
     {
-        $this->name = $name;
+        $this->lastname = $lastname;
+
+        return $this;
+    }
+
+    public function getFirstname(): ?string
+    {
+        return $this->firstname;
+    }
+
+    public function setFirstname(string $firstname): static
+    {
+        $this->firstname = $firstname;
 
         return $this;
     }
@@ -74,7 +107,8 @@ class User
         return $this->email;
     }
 
-    private function validationEmail(?string $email): bool {
+    private function validationEmail(?string $email): bool
+    {
         if ($email === null) {
             return true;
         }
@@ -104,12 +138,25 @@ class User
         return $this;
     }
 
+    public function getSexe(): ?string
+    {
+        return $this->sexe;
+    }
+
+    public function setSexe(string $sexe): static
+    {
+        $this->sexe = $sexe;
+
+        return $this;
+    }
+
     public function getTel(): ?string
     {
         return $this->tel;
     }
 
-    private function validationTel(?string $numero): bool {
+    private function validationTel(?string $numero): bool
+    {
         if ($numero === null) {
             return true;
         }
@@ -127,7 +174,7 @@ class User
         return $this;
     }
 
-    
+
 
     public function getCreateAt(): ?\DateTimeImmutable
     {
@@ -174,11 +221,14 @@ class User
     {
 
         return [
-            'name' => $this->getName(),
+            'firstname' => $this->getFirstname(),
+            'lastname' => $this->getLastname(),
             'email' => $this->getEmail(),
             'tel' => $this->getTel(),
-            'created at' =>$this->getCreateAt(),
-            'updated at' =>$this->getUpdateAt(),
+            'sexe' => $this->getSexe(),
+            'birthDate'=>$this->getBirthDate(),
+            'created at' => $this->getCreateAt(),
+            'updated at' => $this->getUpdateAt(),
             'artist' => $this->getArtist() ?  $this->getArtist()->artistSerializer() : [],
         ];
     }

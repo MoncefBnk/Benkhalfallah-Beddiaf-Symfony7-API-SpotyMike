@@ -2,13 +2,15 @@
 
 namespace App\Controller;
 
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Attribute\Route;
 use App\Entity\User;
+use DateTime;
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use App\DataFixtures\AppFixtures;
 
@@ -42,57 +44,50 @@ class UserController extends AbstractController
 
     #[Route('/user', name: 'app_create_user', methods: ['POST'])]
     public function createUser(Request $request): JsonResponse
-{
+    {
+        $requestData = $request->request->all();
     
-    $requestData = $request->request->all();
-
-    if ($request->headers->get('content-type') === 'application/json') {
-        $requestData = json_decode($request->getContent(), true);
-    }
-
+        if ($request->headers->get('content-type') === 'application/json') {
+            $requestData = json_decode($request->getContent(), true);
+        }
+      
+        switch ($requestData) {
+          case 'idUser' && strlen($requestData['idUser']) > 90:
+              throw new BadRequestHttpException('idUser too long');
+          case 'name' && strlen($requestData['name']) > 55:
+              throw new BadRequestHttpException('User name too long');
+          case 'email' && strlen($requestData['email']) > 80:
+              throw new BadRequestHttpException('User email too long');
+          case 'encrypte' && strlen($requestData['encrypte']) > 90:
+              throw new BadRequestHttpException('User Password too long');
+          case 'tel' && strlen($requestData['tel']) > 15:
+              throw new BadRequestHttpException('Phone number too long');
+        }
+        
+        $user = new User();
+        $user->setIdUser($requestData['idUser'] ?? null)
+            ->setFirstname($requestData['firstname'] ?? null)
+            ->setLastname($requestData['lastname'] ?? null)
+            ->setEmail($requestData['email'] ?? null)
+            ->setSexe($requestData['sexe'] ?? null)
+            ->setEncrypte($requestData['encrypte'] ?? null)
+            ->setTel($requestData['tel'] ?? null)
+            ->setBirthDate($requestData['birthDate'] ?? null)
+            ->setCreateAt(new DateTimeImmutable())
+            ->setUpdateAt(new DateTime());
     
-    $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
-    if ($existingUser) {
-        throw new BadRequestHttpException('Email already exists');
+        // Persist and flush the user entity
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+    
+        // Return JSON response
+        return $this->json([
+            'user' => $user->userSerializer(),
+            'message' => 'User created successfully!',
+            'path' => 'src/Controller/UserController.php',
+        ], Response::HTTP_CREATED);
     }
 
-    $existingUserWithIdUser = $this->repository->findOneBy(['idUser' => $requestData['idUser']]);
-    if ($existingUserWithIdUser) {
-        throw new BadRequestHttpException('idUser already exists');
-    }
-
-    switch ($requestData) {
-        case 'idUser' && strlen($requestData['idUser']) > 90:
-            throw new BadRequestHttpException('idUser too long');
-        case 'name' && strlen($requestData['name']) > 55:
-            throw new BadRequestHttpException('User name too long');
-        case 'email' && strlen($requestData['email']) > 80:
-            throw new BadRequestHttpException('User email too long');
-        case 'encrypte' && strlen($requestData['encrypte']) > 90:
-            throw new BadRequestHttpException('User Password too long');
-        case 'tel' && strlen($requestData['tel']) > 15:
-            throw new BadRequestHttpException('Phone number too long');
-    }
-
-    $user = new User();
-    $user->setIdUser($requestData['idUser'] ?? null)
-        ->setName($requestData['name'] ?? null)
-        ->setEmail($requestData['email'] ?? null)
-        ->setEncrypte($requestData['encrypte'] ?? null)
-        ->setTel($requestData['tel'] ?? null)
-        ->setCreateAt(new \DateTimeImmutable())
-        ->setUpdateAt(new \DateTime());
-
-    $this->entityManager->persist($user);
-    $this->entityManager->flush();
-
-   
-    return $this->json([
-        'user' => $user->userSerializer(),
-        'message' => 'User created successfully!',
-        'path' => 'src/Controller/UserController.php',
-    ], Response::HTTP_CREATED);
-}
     #[Route('/user/{id}', name: 'app_update_user', methods: ['PUT'])]
     public function updateUser(Request $request, int $id): JsonResponse
     {
@@ -107,11 +102,14 @@ class UserController extends AbstractController
 
         $requestData = json_decode($request->getContent(), true);
 
-        $user->setName($requestData['name'] ?? $user->getName())
+        $user->setFirstname($requestData['firstname'] ?? $user->getFirstname())
+            ->setLastname($requestData['lastname'] ?? $user->getLastname())
             ->setEmail($requestData['email'] ?? $user->getEmail())
             ->setEncrypte($requestData['encrypte'] ?? $user->getEncrypte())
             ->setTel($requestData['tel'] ?? $user->getTel())
-            ->setUpdateAt(new \DateTime());
+            ->setSexe($requestData['sexe'] ?? $user->getSexe())
+            ->setUpdateAt(new \DateTime())
+            ->setDateBirth($requestData['dateBirth'] ?? $user->getDateBirth());
 
         $this->entityManager->flush();
 
