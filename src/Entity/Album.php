@@ -147,7 +147,8 @@ class Album
 
         return $this;
     }
-    public function songSerializer()
+    
+    public function albumSerializer()
     {
 
         return [
@@ -155,7 +156,7 @@ class Album
             'category' => $this->getCateg(),
             'cover' => $this->getCover(),
             'year' => $this->getYear(),
-            // 'artist' => $this->getArtistUserIdUser(),
+            'artist' =>$this->getArtistUserIdUser() ?  $this->getArtistUserIdUser()->artistSerializer() : [],
         ];
     }
 }

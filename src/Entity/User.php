@@ -179,7 +179,7 @@ class User
             'tel' => $this->getTel(),
             'created at' =>$this->getCreateAt(),
             'updated at' =>$this->getUpdateAt(),
-
+            'artist' => $this->getArtist() ?  $this->getArtist()->artistSerializer() : [],
         ];
     }
 }

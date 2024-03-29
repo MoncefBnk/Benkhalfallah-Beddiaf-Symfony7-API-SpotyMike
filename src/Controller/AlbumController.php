@@ -30,7 +30,7 @@ class AlbumController extends AbstractController
 
         $serializedAlbums = [];
         foreach ($albums as $album) {
-            $serializedAlbums[] = $album->songSerializer();
+            $serializedAlbums[] = $album->albumSerializer();
         }
 
         return $this->json([
@@ -50,7 +50,7 @@ class AlbumController extends AbstractController
         }
 
         return $this->json([
-            'album' => $album->songSerializer(),
+            'album' => $album->albumSerializer(),
             'message' => 'Album retrieved successfully!',
             'path' => 'src/Controller/AlbumController.php',
         ]);
@@ -106,7 +106,7 @@ public function createAlbum(Request $request): JsonResponse
     $this->entityManager->flush();
 
     return $this->json([
-        'album' => $album->songSerializer(),
+        'album' => $album->albumSerializer(),
         'message' => 'Album créé avec succès!',
         'path' => 'src/Controller/AlbumController.php',
     ]);
@@ -137,7 +137,7 @@ public function createAlbum(Request $request): JsonResponse
         $this->entityManager->flush();
     
         return $this->json([
-            'album' => $album->songSerializer(),
+            'album' => $album->albumSerializer(),
             'message' => 'Album updated successfully!',
             'path' => 'src/Controller/AlbumController.php',
         ]);
