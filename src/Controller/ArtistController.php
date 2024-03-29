@@ -8,6 +8,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Artist;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use App\Entity\User;
 
 class ArtistController extends AbstractController
@@ -20,45 +21,44 @@ class ArtistController extends AbstractController
     }
 
     #[Route('/artist/{userId}', name: 'app_create_artist', methods: ['POST'])]
-public function createArtist(Request $request, int $userId): JsonResponse
-{
-    // Find the user
-    $user = $this->entityManager->getRepository(User::class)->find($userId);
-
-    // Check if the user exists
-    if (!$user) {
+    public function createArtist(Request $request, int $userId): JsonResponse
+    {
+        // Find the user
+        $user = $this->entityManager->getRepository(User::class)->find($userId);
+    
+        // Check if the user exists
+        if (!$user) {
+            return $this->json([
+                'message' => 'User not found',
+            ], JsonResponse::HTTP_NOT_FOUND);
+        }
+    
+        // Parse request data based on content type
+        $requestData = $request->request->all();
+    
+        if ($request->headers->get('content-type') === 'application/json') {
+            $requestData = json_decode($request->getContent(), true);
+        }
+    
+    
+        // Create a new artist instance
+        $artist = new Artist();
+        $artist->setUserIdUser($user);
+        $artist->setFullname($requestData['fullname'] ?? null);
+        $artist->setLabel($requestData['label'] ?? null);
+        $artist->setDescription($requestData['description'] ?? null);
+    
+        // Persist the artist entity
+        $this->entityManager->persist($artist);
+        $this->entityManager->flush();
+    
+        // Return response
         return $this->json([
-            'message' => 'User not found',
-        ], JsonResponse::HTTP_NOT_FOUND);
+            'artist' => $artist->artistSerializer(),
+            'message' => 'Artist created successfully!',
+            'path' => 'src/Controller/ArtistController.php',
+        ]);
     }
-
-    // Create a new artist instance
-    $artist = new Artist();
-    $artist->setUserIdUser($user);
-
-    // Parse request data based on content type
-    $requestData = $request->request->all();
-
-    if ($request->headers->get('content-type') === 'application/json') {
-        $requestData = json_decode($request->getContent(), true);
-    }
-
-    // Set artist properties
-    $artist->setFullname($requestData['fullname'] ?? null);
-    $artist->setLabel($requestData['label'] ?? null);
-    $artist->setDescription($requestData['description'] ?? null);
-
-    // Persist the artist entity
-    $this->entityManager->persist($artist);
-    $this->entityManager->flush();
-
-    // Return response
-    return $this->json([
-        'artist' => $artist->artistSerializer(),
-        'message' => 'Artist created successfully!',
-        'path' => 'src/Controller/ArtistController.php',
-    ]);
-}
 
 
     #[Route('/artists', name: 'app_get_artists', methods: ['GET'])]

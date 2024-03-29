@@ -8,6 +8,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Playlist;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use App\Repository\PlaylistRepository;
 
 class PlaylistController extends AbstractController
@@ -55,37 +56,51 @@ class PlaylistController extends AbstractController
         ]);
     }
 
-    #[Route('/playlist', name: 'app_create_playlist', methods: ['POST'])]
-    public function createPlaylist(Request $request): JsonResponse
-    {
-        $requestData = $request->request->all();
+#[Route('/playlist', name: 'app_create_playlist', methods: ['POST'])]
+public function createPlaylist(Request $request): JsonResponse
+{
+    $requestData = $request->request->all();
 
-        
-        if ($request->headers->get('content-type') === 'application/json') {
-            $requestData = json_decode($request->getContent(), true);
-        }
-
-        if (!isset($requestData['idPlaylist'], $requestData['title'])) {
-            return $this->json(['message' => 'Required fields are missing!'], 400);
-        }
-
-        $playlist = new Playlist();
-        $playlist->setIdPlaylist($requestData['idPlaylist']);
-        $playlist->setTitle($requestData['title']);
-        $playlist->setPublic($requestData['public'] ?? true);
-        $playlist->setCreateAt(new \DateTimeImmutable());
-        $playlist->setUpdateAt(new \DateTimeImmutable());
-
-
-        $this->entityManager->persist($playlist);
-        $this->entityManager->flush();
-
-        return $this->json([
-            'playlist' => $playlist->playlistSerializer(),
-            'message' => 'Playlist created successfully!',
-            'path' => 'src/Controller/PlaylistController.php',
-        ]);
+    if ($request->headers->get('content-type') === 'application/json') {
+        $requestData = json_decode($request->getContent(), true);
     }
+
+    // Check if idPlaylist already exists
+    $existingPlaylistById = $this->playlistRepository->findOneBy(['idPlaylist' => $requestData['idPlaylist']]);
+    if ($existingPlaylistById) {
+        throw new BadRequestHttpException('Playlist with this idPlaylist already exists');
+    }
+
+    // Check if title already exists
+    $existingPlaylistByTitle = $this->playlistRepository->findOneBy(['title' => $requestData['title']]);
+    if ($existingPlaylistByTitle) {
+        throw new BadRequestHttpException('Playlist with this title already exists');
+    }
+
+    // Validate required fields
+    if (!isset($requestData['idPlaylist'], $requestData['title'])) {
+        return $this->json(['message' => 'Required fields are missing!'], 400);
+    }
+
+    // Create a new playlist instance
+    $playlist = new Playlist();
+    $playlist->setIdPlaylist($requestData['idPlaylist']);
+    $playlist->setTitle($requestData['title']);
+    $playlist->setPublic($requestData['public'] ?? true);
+    $playlist->setCreateAt(new \DateTimeImmutable());
+    $playlist->setUpdateAt(new \DateTimeImmutable());
+
+    // Persist the playlist entity
+    $this->entityManager->persist($playlist);
+    $this->entityManager->flush();
+
+    // Return response
+    return $this->json([
+        'playlist' => $playlist->playlistSerializer(),
+        'message' => 'Playlist created successfully!',
+        'path' => 'src/Controller/PlaylistController.php',
+    ]);
+}
 
     #[Route('/playlist/{id}', name: 'app_update_playlist', methods: ['PUT'])]
     public function updatePlaylist(Request $request, int $id): JsonResponse
