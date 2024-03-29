@@ -69,6 +69,13 @@ class PlaylistController extends AbstractController
             return $this->json(['message' => 'Required fields are missing!'], 400);
         }
 
+        switch ($requestData) {
+            case 'idPlaylist' && strlen($requestData['idPlaylist']) > 90:
+                throw new BadRequestHttpException('Playlist ID too long');
+            case 'title' && strlen($requestData['title']) > 50:
+                throw new BadRequestHttpException('Title too long');
+        }
+
         $playlist = new Playlist();
         $playlist->setIdPlaylist($requestData['idPlaylist']);
         $playlist->setTitle($requestData['title']);

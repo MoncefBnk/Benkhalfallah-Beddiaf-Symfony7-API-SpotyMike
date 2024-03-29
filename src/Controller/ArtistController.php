@@ -43,6 +43,13 @@ public function createArtist(Request $request, int $userId): JsonResponse
         $requestData = json_decode($request->getContent(), true);
     }
 
+    switch ($requestData) {
+        case 'fullname' && strlen($requestData['fullname']) > 90:
+            throw new BadRequestHttpException('Artist name too long');
+        case 'label' && strlen($requestData['label']) > 90:
+            throw new BadRequestHttpException('Label name too long');
+    }
+
     // Set artist properties
     $artist->setFullname($requestData['fullname'] ?? null);
     $artist->setLabel($requestData['label'] ?? null);

@@ -10,6 +10,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use App\DataFixtures\AppFixtures;
 
 class UserController extends AbstractController
 {
@@ -38,6 +39,7 @@ class UserController extends AbstractController
             'path' => 'src/Controller/SongController.php',
         ]);
     }
+
     #[Route('/user', name: 'app_create_user', methods: ['POST'])]
     public function createUser(Request $request): JsonResponse
 {
@@ -59,6 +61,18 @@ class UserController extends AbstractController
         throw new BadRequestHttpException('idUser already exists');
     }
 
+    switch ($requestData) {
+        case 'idUser' && strlen($requestData['idUser']) > 90:
+            throw new BadRequestHttpException('idUser too long');
+        case 'name' && strlen($requestData['name']) > 55:
+            throw new BadRequestHttpException('User name too long');
+        case 'email' && strlen($requestData['email']) > 80:
+            throw new BadRequestHttpException('User email too long');
+        case 'encrypte' && strlen($requestData['encrypte']) > 90:
+            throw new BadRequestHttpException('User Password too long');
+        case 'tel' && strlen($requestData['tel']) > 15:
+            throw new BadRequestHttpException('Phone number too long');
+    }
 
     $user = new User();
     $user->setIdUser($requestData['idUser'] ?? null)
@@ -68,7 +82,6 @@ class UserController extends AbstractController
         ->setTel($requestData['tel'] ?? null)
         ->setCreateAt(new \DateTimeImmutable())
         ->setUpdateAt(new \DateTime());
-
 
     $this->entityManager->persist($user);
     $this->entityManager->flush();
