@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use DateTime;
+use DateInterval;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
@@ -25,27 +27,40 @@ class ArtistController extends AbstractController
     {
         // Find the user
         $user = $this->entityManager->getRepository(User::class)->find($userId);
-    
+
         // Check if the user exists
         if (!$user) {
             return $this->json([
                 'message' => 'User not found',
             ], JsonResponse::HTTP_NOT_FOUND);
         }
-    
+
         // Parse request data based on content type
         $requestData = $request->request->all();
-    
+
         if ($request->headers->get('content-type') === 'application/json') {
             $requestData = json_decode($request->getContent(), true);
         }
-      
+
         switch ($requestData) {
-          case 'fullname' && strlen($requestData['fullname']) > 90:
-              throw new BadRequestHttpException('Artist name too long');
-          case 'label' && strlen($requestData['label']) > 90:
-              throw new BadRequestHttpException('Label name too long');
-      }
+            case 'fullname' && strlen($requestData['fullname']) > 90:
+                throw new BadRequestHttpException('Une ou plusieurs donnée sont erronées');
+            case 'label' && strlen($requestData['label']) > 90:
+                throw new BadRequestHttpException('Une ou plusieurs donnée sont erronées');
+        }
+
+
+        // Get the birth date of the user
+        $birthDate = $user->getBirthDate();
+
+        // Calculate the age
+        $today = new DateTime();
+        $age = $today->diff($birthDate)->y;
+
+        // Check if the age is greater than 16
+        if ($age < 16) {
+            throw new BadRequestHttpException("l'age de l'utilisateur de ne permet pas (16 ans)");
+        }
 
         // Create a new artist instance
         $artist = new Artist();
@@ -53,15 +68,15 @@ class ArtistController extends AbstractController
         $artist->setFullname($requestData['fullname'] ?? null);
         $artist->setLabel($requestData['label'] ?? null);
         $artist->setDescription($requestData['description'] ?? null);
-    
+
         // Persist the artist entity
         $this->entityManager->persist($artist);
         $this->entityManager->flush();
-    
+
         // Return response
         return $this->json([
             'artist' => $artist->artistSerializer(),
-            'message' => 'Artist created successfully!',
+            'message' => 'Votre inscription a bien été prise en compte',
             'path' => 'src/Controller/ArtistController.php',
         ]);
     }
@@ -94,7 +109,7 @@ class ArtistController extends AbstractController
             ], JsonResponse::HTTP_NOT_FOUND);
         }
 
-      
+
         $data = json_decode($request->getContent(), true);
 
 
