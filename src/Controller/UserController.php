@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use App\DataFixtures\AppFixtures;
+use DateTime;
 
 class UserController extends AbstractController
 {
@@ -22,6 +23,15 @@ class UserController extends AbstractController
     {
         $this->entityManager = $entityManager;
         $this->repository = $entityManager->getRepository(User::class);
+    }
+    #[Route('/', name: 'app_index', methods: ['GET'])]
+    public function index(Request $request): Response
+    {
+        // Récupérer le contenu de index.html
+        $content = file_get_contents(__DIR__ . '/../../public/index.php');
+
+        // Retourner une réponse avec le contenu de index.html
+        return new Response($content);
     }
 
     #[Route('/user/all', name: 'app_get_all_users', methods: ['GET'])]
@@ -63,6 +73,15 @@ class UserController extends AbstractController
 
         if ($dateBirth === false) {
             throw new BadRequestHttpException('Invalid birth date format. Please enter the date in dd-mm-yyyy format.');
+        }
+
+        // Calculate the age
+        $today = new DateTime();
+        $age = $today->diff($dateBirth)->y;
+
+        // Check if the age is greater than 16
+        if ($age < 12) {
+            throw new BadRequestHttpException('User must be at least 12 years old to become a user.');
         }
 
         switch ($requestData) {
@@ -147,6 +166,13 @@ class UserController extends AbstractController
             $dateBirth = DateTimeImmutable::createFromFormat('d-m-Y', $requestData['dateBirth']);
             if ($dateBirth === false) {
                 throw new BadRequestHttpException('Invalid birth date format. Please enter the date in dd-mm-yyyy format.');
+            }
+            $today = new DateTime();
+            $age = $today->diff($dateBirth)->y;
+
+            // Check if the age is greater than 16
+            if ($age < 12) {
+                throw new BadRequestHttpException('User must be at least 12 years old to become a user.');
             }
             $user->setDateBirth($dateBirth);
         }
