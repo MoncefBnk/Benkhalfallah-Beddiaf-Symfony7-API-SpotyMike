@@ -107,7 +107,7 @@ class ArtistController extends AbstractController
     }
 
 
-    #[Route('/artists', name: 'app_get_artists', methods: ['GET'])]
+    #[Route('/artist/all', name: 'app_get_artists', methods: ['GET'])]
     public function getAllArtists(): JsonResponse
     {
         $artists = $this->entityManager->getRepository(Artist::class)->findAll();
@@ -124,11 +124,30 @@ class ArtistController extends AbstractController
         ]);
     }
 
-    #[Route('/artist/{id}', name: 'app_update_artist', methods: ['PUT'])]
-    public function updateArtist(Request $request, int $id): JsonResponse
+    #[Route('/artist', name: 'app_update_artist', methods: ['PUT'])]
+    public function updateArtist(Request $request): JsonResponse
     {
-        $artist = $this->entityManager->getRepository(Artist::class)->find($id);
+        // Parse request data based on content type
+        $requestData = $request->request->all();
 
+        if ($request->headers->get('content-type') === 'application/json') {
+            $requestData = json_decode($request->getContent(), true);
+        }
+
+        // Extract artist ID from the request body
+        $artistId = $requestData['id'] ?? null;
+
+        // Check if the artist ID is provided
+        if (!$artistId) {
+            return $this->json([
+                'message' => 'Missing artist ID in request body',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        // Find the artist by ID
+        $artist = $this->entityManager->getRepository(Artist::class)->find($artistId);
+
+        // Check if the artist exists
         if (!$artist) {
             return $this->json([
                 'message' => 'Artist not found',
@@ -146,7 +165,7 @@ class ArtistController extends AbstractController
         if (isset($requestData['fullname'])) {
             $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
             if ($existingArtistWithFullname) {
-                throw new BadRequestHttpException('un utilisateur avec ce nom existe deja ');
+                throw new BadRequestHttpException('An artist with this name already exists');
             } else {
 
                 $artist->setFullname($requestData['fullname']);
