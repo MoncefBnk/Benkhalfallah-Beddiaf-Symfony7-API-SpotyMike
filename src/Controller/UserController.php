@@ -23,6 +23,15 @@ class UserController extends AbstractController
         $this->entityManager = $entityManager;
         $this->repository = $entityManager->getRepository(User::class);
     }
+    #[Route('/', name: 'app_index', methods: ['GET'])]
+public function index(Request $request): Response
+{
+    // Récupérer le contenu de index.html
+    $content = file_get_contents(__DIR__ . '/../../public/index.php');
+
+    // Retourner une réponse avec le contenu de index.html
+    return new Response($content);
+}
 
     #[Route('/users', name: 'app_get_all_users', methods: ['GET'])]
     public function getAllUsers(): JsonResponse
