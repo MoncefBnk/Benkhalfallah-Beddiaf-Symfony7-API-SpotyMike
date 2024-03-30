@@ -24,7 +24,7 @@ class UserController extends AbstractController
         $this->repository = $entityManager->getRepository(User::class);
     }
 
-    #[Route('/users', name: 'app_get_all_users', methods: ['GET'])]
+    #[Route('/user/all', name: 'app_get_all_users', methods: ['GET'])]
     public function getAllUsers(): JsonResponse
     {
         $users = $this->entityManager->getRepository(User::class)->findAll();
