@@ -16,10 +16,12 @@ use App\Entity\User;
 class ArtistController extends AbstractController
 {
     private $entityManager;
+    private $repository;
 
     public function __construct(EntityManagerInterface $entityManager)
     {
         $this->entityManager = $entityManager;
+        $this->repository = $entityManager->getRepository(Artist::class);
     }
 
     #[Route('/artist/{userId}', name: 'app_create_artist', methods: ['POST'])]
@@ -40,6 +42,11 @@ class ArtistController extends AbstractController
 
         if ($request->headers->get('content-type') === 'application/json') {
             $requestData = json_decode($request->getContent(), true);
+        }
+
+        $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
+        if ($existingArtistWithFullname) {
+            throw new BadRequestHttpException('un utilisateur avec ce nom existe deja ');
         }
 
         switch ($requestData) {
@@ -109,20 +116,27 @@ class ArtistController extends AbstractController
             ], JsonResponse::HTTP_NOT_FOUND);
         }
 
+        $requestData = $request->request->all();
 
-        $data = json_decode($request->getContent(), true);
-
-
-        if (isset($data['fullname'])) {
-            $artist->setFullname($data['fullname']);
+        if ($request->headers->get('content-type') === 'application/json') {
+            $requestData = json_decode($request->getContent(), true);
         }
-        if (isset($data['label'])) {
-            $artist->setLabel($data['label']);
-        }
-        if (isset($data['description'])) {
-            $artist->setDescription($data['description']);
+        $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
+        if ($existingArtistWithFullname) {
+            throw new BadRequestHttpException('un utilisateur avec ce nom existe deja ');
         }
 
+
+        if (isset($requestData['fullname'])) {
+            $artist->setFullname($requestData['fullname']);
+        }
+        if (isset($requestData['label'])) {
+            $artist->setLabel($requestData['label']);
+        }
+        if (isset($requestData['description'])) {
+            $artist->setDescription($requestData['description']);
+        }
+        $this->entityManager->persist($artist);
         $this->entityManager->flush();
 
         return $this->json([

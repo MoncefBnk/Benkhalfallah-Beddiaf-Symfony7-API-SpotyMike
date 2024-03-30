@@ -154,7 +154,7 @@ class Artist
     {
 
         return [
-            'name' => $this->getFullname(),
+            'fullname' => $this->getFullname(),
             'label' => $this->getLabel(),
             'description' => $this->getDescription(),
         ];

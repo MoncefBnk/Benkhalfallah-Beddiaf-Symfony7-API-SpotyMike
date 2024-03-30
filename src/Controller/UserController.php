@@ -50,10 +50,18 @@ class UserController extends AbstractController
             $requestData = json_decode($request->getContent(), true);
         }
 
-        
-        $birthDate = DateTimeImmutable::createFromFormat('d-m-Y', $requestData['birthDate']);
+        $existingUserWithIdUser = $this->repository->findOneBy(['idUser' => $requestData['idUser']]);
+        if ($existingUserWithIdUser) {
+            throw new BadRequestHttpException('idUser already exists');
+        }
 
-        if ($birthDate === false) {
+        $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
+        if ($existingUser) {
+            throw new BadRequestHttpException('Email already exists');
+        }
+        $dateBirth = DateTimeImmutable::createFromFormat('d-m-Y', $requestData['dateBirth']);
+
+        if ($dateBirth === false) {
             throw new BadRequestHttpException('Invalid birth date format. Please enter the date in dd-mm-yyyy format.');
         }
 
@@ -68,8 +76,8 @@ class UserController extends AbstractController
                 throw new BadRequestHttpException('User Password too long');
             case 'tel' && strlen($requestData['tel']) > 15:
                 throw new BadRequestHttpException('Phone number too long');
-          }
-        
+        }
+
         $user = new User();
         $user->setIdUser($requestData['idUser'] ?? null)
             ->setFirstname($requestData['firstname'] ?? null)
@@ -78,13 +86,13 @@ class UserController extends AbstractController
             ->setSexe($requestData['sexe'] ?? null)
             ->setEncrypte($requestData['encrypte'] ?? null)
             ->setTel($requestData['tel'] ?? null)
-            ->setBirthDate($birthDate) 
+            ->setDateBirth($dateBirth)
             ->setCreateAt(new DateTimeImmutable())
             ->setUpdateAt(new DateTimeImmutable());
         // Persist and flush the user entity
         $this->entityManager->persist($user);
         $this->entityManager->flush();
-    
+
         // Return JSON response
         return $this->json([
             'user' => $user->userSerializer(),
@@ -96,8 +104,7 @@ class UserController extends AbstractController
     #[Route('/user/{id}', name: 'app_update_user', methods: ['PUT'])]
     public function updateUser(Request $request, int $id): JsonResponse
     {
-        $userRepository = $this->entityManager->getRepository(User::class);
-        $user = $userRepository->find($id);
+        $user = $this->entityManager->getRepository(User::class)->find($id);
 
         if (!$user) {
             return $this->json([
@@ -105,32 +112,58 @@ class UserController extends AbstractController
             ], Response::HTTP_NOT_FOUND);
         }
 
-        $requestData = json_decode($request->getContent(), true);
+        $requestData = $request->request->all();
 
-        // Parse the French date format and convert it to DateTimeImmutable object
-        $birthDate = DateTimeImmutable::createFromFormat('d-m-Y', $requestData['birthDate']);
-
-        if ($birthDate === false) {
-            throw new BadRequestHttpException('Invalid birth date format. Please enter the date in dd-mm-yyyy format.');
+        if ($request->headers->get('content-type') === 'application/json') {
+            $requestData = json_decode($request->getContent(), true);
         }
 
-        $user->setFirstname($requestData['firstname'] ?? $user->getFirstname())
-            ->setLastname($requestData['lastname'] ?? $user->getLastname())
-            ->setEmail($requestData['email'] ?? $user->getEmail())
-            ->setEncrypte($requestData['encrypte'] ?? $user->getEncrypte())
-            ->setTel($requestData['tel'] ?? $user->getTel())
-            ->setSexe($requestData['sexe'] ?? $user->getSexe())
-            ->setUpdateAt(new DateTimeImmutable())
-            ->setBirthDate($birthDate);
+        $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
+        if ($existingUser) {
+            throw new BadRequestHttpException('Email already exists');
+        }
 
+
+        if (isset($requestData['firstname'])) {
+            $user->setFirstname($requestData['firstname']);
+        }
+        if (isset($requestData['lastname'])) {
+            $user->setLastname($requestData['lastname']);
+        }
+        if (isset($requestData['email'])) {
+            $user->setEmail($requestData['email']);
+        }
+        if (isset($requestData['sexe'])) {
+            $user->setSexe($requestData['sexe']);
+        }
+        if (isset($requestData['encrypte'])) {
+            $user->setEncrypte($requestData['encrypte']);
+        }
+        if (isset($requestData['tel'])) {
+            $user->setTel($requestData['tel']);
+        }
+        if (isset($requestData['dateBirth'])) {
+            $dateBirth = DateTimeImmutable::createFromFormat('d-m-Y', $requestData['dateBirth']);
+            if ($dateBirth === false) {
+                throw new BadRequestHttpException('Invalid birth date format. Please enter the date in dd-mm-yyyy format.');
+            }
+            $user->setDateBirth($dateBirth);
+        }
+
+        $user->setUpdateAt(new DateTimeImmutable());
+
+        // Persist and flush the updated user entity
+        $this->entityManager->persist($user);
         $this->entityManager->flush();
 
+        // Return JSON response
         return $this->json([
             'user' => $user->userSerializer(),
             'message' => 'User updated successfully!',
             'path' => 'src/Controller/UserController.php',
         ]);
     }
+
 
     #[Route('/user/{id}', name: 'app_delete_user', methods: ['DELETE'])]
     public function deleteUser(int $id): JsonResponse

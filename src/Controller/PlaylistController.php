@@ -131,6 +131,7 @@ public function createPlaylist(Request $request): JsonResponse
             $playlist->setPublic($requestData['public']);
         }
 
+        $this->entityManager->persist($playlist);
         $this->entityManager->flush();
 
         return $this->json([
