@@ -118,10 +118,6 @@ class UserController extends AbstractController
             $requestData = json_decode($request->getContent(), true);
         }
 
-        $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
-        if ($existingUser) {
-            throw new BadRequestHttpException('Email already exists');
-        }
 
 
         if (isset($requestData['firstname'])) {
@@ -131,7 +127,12 @@ class UserController extends AbstractController
             $user->setLastname($requestData['lastname']);
         }
         if (isset($requestData['email'])) {
-            $user->setEmail($requestData['email']);
+            $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
+            if ($existingUser) {
+                throw new BadRequestHttpException('Email already exists');
+            } else {
+                $user->setEmail($requestData['email']);
+            }
         }
         if (isset($requestData['sexe'])) {
             $user->setSexe($requestData['sexe']);
