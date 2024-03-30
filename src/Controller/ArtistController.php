@@ -40,7 +40,7 @@ class ArtistController extends AbstractController
         foreach ($requiredFields as $field) {
             if (!isset($requestData[$field])) {
                 return $this->json([
-                    'message' => 'Missing required data: ' . $field,
+                    'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' . $field,
                 ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
             }
         }
@@ -59,7 +59,7 @@ class ArtistController extends AbstractController
         // Check if the user is already associated with an artist account
         if ($user->getArtist() !== null) {
             return $this->json([
-                'message' => 'User already has an artist account',
+                'message' => 'Un compte utilisant est déjà un compte artiste',
             ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         }
 
@@ -76,7 +76,7 @@ class ArtistController extends AbstractController
 
         if (!empty($invalidData)) {
             return $this->json([
-                'message' => 'Invalid data',
+                'message' => 'Une ou plusieurs donnée sont erronées',
                 'data' => $invalidData,
             ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         }
@@ -84,7 +84,19 @@ class ArtistController extends AbstractController
         // Check if an artist with the same name already exists
         $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
         if ($existingArtistWithFullname) {
-            throw new BadRequestHttpException('An artist with this name already exists');
+            throw new BadRequestHttpException("Un compte utilisant ce nom d'artiste est déjà enregistré");
+        }
+
+        // Get the birth date of the user
+        $dateBirth = $user->getDateBirth();
+
+        // Calculate the age
+        $today = new DateTime();
+        $age = $today->diff($dateBirth)->y;
+
+        // Check if the age is greater than 16
+        if ($age < 16) {
+            throw new BadRequestHttpException("l'age de l'utilisateur de ne permet pas (16 ans)");
         }
 
         // Create a new artist instance
