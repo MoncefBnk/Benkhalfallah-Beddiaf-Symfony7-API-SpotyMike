@@ -24,15 +24,6 @@ class UserController extends AbstractController
         $this->entityManager = $entityManager;
         $this->repository = $entityManager->getRepository(User::class);
     }
-    #[Route('/', name: 'app_index', methods: ['GET'])]
-    public function index(Request $request): Response
-    {
-        // Récupérer le contenu de index.html
-        $content = file_get_contents(__DIR__ . '/../../public/index.php');
-
-        // Retourner une réponse avec le contenu de index.html
-        return new Response($content);
-    }
 
     #[Route('/user/all', name: 'app_get_all_users', methods: ['GET'])]
     public function getAllUsers(): JsonResponse
@@ -75,11 +66,11 @@ class UserController extends AbstractController
             throw new BadRequestHttpException('Invalid birth date format. Please enter the date in dd-mm-yyyy format.');
         }
 
-        // Calculate the age
+
         $today = new DateTime();
         $age = $today->diff($dateBirth)->y;
 
-        // Check if the age is greater than 16
+
         if ($age < 12) {
             throw new BadRequestHttpException('User must be at least 12 years old to become a user.');
         }
@@ -108,11 +99,11 @@ class UserController extends AbstractController
             ->setDateBirth($dateBirth)
             ->setCreateAt(new DateTimeImmutable())
             ->setUpdateAt(new DateTimeImmutable());
-        // Persist and flush the user entity
+
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
-        // Return JSON response
+
         return $this->json([
             'user' => $user->userSerializer(),
             'message' => 'User created successfully!',
@@ -137,7 +128,9 @@ class UserController extends AbstractController
             $requestData = json_decode($request->getContent(), true);
         }
 
+        $hasArtist = $user->getArtist() !== null;
 
+        $minimumAge = $hasArtist ? 16 : 12;
 
         if (isset($requestData['firstname'])) {
             $user->setFirstname($requestData['firstname']);
@@ -170,27 +163,23 @@ class UserController extends AbstractController
             $today = new DateTime();
             $age = $today->diff($dateBirth)->y;
 
-            // Check if the age is greater than 16
-            if ($age < 12) {
-                throw new BadRequestHttpException('User must be at least 12 years old to become a user.');
+            if ($age < $minimumAge) {
+                throw new BadRequestHttpException('User must be at least ' . $minimumAge . ' years old to update.');
             }
             $user->setDateBirth($dateBirth);
         }
 
         $user->setUpdateAt(new DateTimeImmutable());
 
-        // Persist and flush the updated user entity
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
-        // Return JSON response
         return $this->json([
             'user' => $user->userSerializer(),
             'message' => 'User updated successfully!',
             'path' => 'src/Controller/UserController.php',
         ]);
     }
-
 
     #[Route('/user/{id}', name: 'app_delete_user', methods: ['DELETE'])]
     public function deleteUser(int $id): JsonResponse
