@@ -24,17 +24,32 @@ class ArtistController extends AbstractController
         $this->repository = $entityManager->getRepository(Artist::class);
     }
 
+    #[Route('/artist/all', name: 'app_get_artists', methods: ['GET'])]
+    public function getAllArtists(): JsonResponse
+    {
+        $artists = $this->entityManager->getRepository(Artist::class)->findAll();
+
+        $serializedArtists = [];
+        foreach ($artists as $artist) {
+            $serializedArtists[] = $artist->artistSerializer();
+        }
+
+        return $this->json([
+            'artists' => $serializedArtists,
+            'message' => 'All artists retrieved successfully!',
+            'path' => 'src/Controller/ArtistController.php',
+        ]);
+    }
+    
     #[Route('/artist', name: 'app_create_artist', methods: ['POST'])]
     public function createArtist(Request $request): JsonResponse
     {
-        // Parse request data based on content type
         $requestData = $request->request->all();
 
         if ($request->headers->get('content-type') === 'application/json') {
             $requestData = json_decode($request->getContent(), true);
         }
 
-        // Check if the required fields are present in the request data
         $requiredFields = ['userId', 'fullname', 'label'];
 
         foreach ($requiredFields as $field) {
@@ -45,25 +60,21 @@ class ArtistController extends AbstractController
             }
         }
 
-        // Find the user
         $userId = $requestData['userId'];
         $user = $this->entityManager->getRepository(User::class)->find($userId);
 
-        // Check if the user exists
         if (!$user) {
             return $this->json([
                 'message' => 'User not found',
             ], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        // Check if the user is already associated with an artist account
         if ($user->getArtist() !== null) {
             return $this->json([
                 'message' => 'Un compte utilisant est déjà un compte artiste',
             ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         }
 
-        // Check for data conformity
         $invalidData = [];
 
         if (isset($requestData['fullname']) && strlen($requestData['fullname']) > 90) {
@@ -81,36 +92,29 @@ class ArtistController extends AbstractController
             ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         }
 
-        // Check if an artist with the same name already exists
         $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
         if ($existingArtistWithFullname) {
             throw new BadRequestHttpException("Un compte utilisant ce nom d'artiste est déjà enregistré");
         }
 
-        // Get the birth date of the user
         $dateBirth = $user->getDateBirth();
 
-        // Calculate the age
         $today = new DateTime();
         $age = $today->diff($dateBirth)->y;
 
-        // Check if the age is greater than 16
         if ($age < 16) {
             throw new BadRequestHttpException("l'age de l'utilisateur de ne permet pas (16 ans)");
         }
 
-        // Create a new artist instance
         $artist = new Artist();
         $artist->setUserIdUser($user);
         $artist->setFullname($requestData['fullname']);
         $artist->setLabel($requestData['label']);
         $artist->setDescription($requestData['description'] ?? null);
 
-        // Persist the artist entity
         $this->entityManager->persist($artist);
         $this->entityManager->flush();
 
-        // Return response
         return $this->json([
             'artist' => $artist->artistSerializer(),
             'message' => 'Your registration has been successfully processed',
@@ -118,48 +122,25 @@ class ArtistController extends AbstractController
         ], JsonResponse::HTTP_CREATED); // 201 Created
     }
 
-
-    #[Route('/artist/all', name: 'app_get_artists', methods: ['GET'])]
-    public function getAllArtists(): JsonResponse
-    {
-        $artists = $this->entityManager->getRepository(Artist::class)->findAll();
-
-        $serializedArtists = [];
-        foreach ($artists as $artist) {
-            $serializedArtists[] = $artist->artistSerializer();
-        }
-
-        return $this->json([
-            'artists' => $serializedArtists,
-            'message' => 'All artists retrieved successfully!',
-            'path' => 'src/Controller/ArtistController.php',
-        ]);
-    }
-
     #[Route('/artist', name: 'app_update_artist', methods: ['PUT'])]
     public function updateArtist(Request $request): JsonResponse
     {
-        // Parse request data based on content type
         $requestData = $request->request->all();
 
         if ($request->headers->get('content-type') === 'application/json') {
             $requestData = json_decode($request->getContent(), true);
         }
 
-        // Extract artist ID from the request body
         $artistId = $requestData['id'] ?? null;
 
-        // Check if the artist ID is provided
         if (!$artistId) {
             return $this->json([
                 'message' => 'Missing artist ID in request body',
             ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        // Find the artist by ID
         $artist = $this->entityManager->getRepository(Artist::class)->find($artistId);
 
-        // Check if the artist exists
         if (!$artist) {
             return $this->json([
                 'message' => 'Artist not found',
@@ -171,8 +152,6 @@ class ArtistController extends AbstractController
         if ($request->headers->get('content-type') === 'application/json') {
             $requestData = json_decode($request->getContent(), true);
         }
-
-
 
         if (isset($requestData['fullname'])) {
             $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
