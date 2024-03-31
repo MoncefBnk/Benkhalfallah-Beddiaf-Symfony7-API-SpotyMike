@@ -34,7 +34,7 @@ class User
     #[ORM\Column(length: 90)]
     private ?string $encrypte = null;
 
-    #[ORM\Column(length: 55)]
+    #[ORM\Column(length: 55, nullable: true)]
     private ?string $sexe = null;
     
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
@@ -133,7 +133,7 @@ class User
         return $this->sexe;
     }
 
-    public function setSexe(string $sexe): static
+    public function setSexe(?string $sexe): static
     {
         $this->sexe = $sexe;
 
@@ -163,8 +163,6 @@ class User
 
         return $this;
     }
-
-
 
     public function getCreateAt(): ?\DateTimeImmutable
     {
@@ -221,6 +219,7 @@ class User
 
     public function userSerializer()
     {
+        $dateBirthFormatted = $this->getDateBirth() ? $this->getDateBirth()->format('d-m-Y') : null;
 
         return [
             'firstname' => $this->getFirstname(),
@@ -228,9 +227,9 @@ class User
             'email' => $this->getEmail(),
             'tel' => $this->getTel(),
             'sexe' => $this->getSexe(),
-            'dateBirth'=>$this->getDateBirth(),
-            'created at' => $this->getCreateAt(),
-            'updated at' => $this->getUpdateAt(),
+            'dateBirth'=>$dateBirthFormatted,
+            'createdAt' => $this->getCreateAt(),
+            'updatedAt' => $this->getUpdateAt(),
             'artist' => $this->getArtist() ?  $this->getArtist()->artistSerializer() : [],
         ];
     }
