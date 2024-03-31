@@ -153,6 +153,11 @@ class ArtistController extends AbstractController
             $requestData = json_decode($request->getContent(), true);
         }
 
+        $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
+        if ($existingArtistWithFullname) {
+            throw new BadRequestHttpException("Un compte utilisant ce nom d'artiste est déjà enregistré");
+        }
+
         $requiredFields = ['fullname', 'label'];
         $missingFields = [];
     

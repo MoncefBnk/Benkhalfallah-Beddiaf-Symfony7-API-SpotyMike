@@ -68,10 +68,8 @@ class AlbumController extends AbstractController
 
         $albumExistNom = $this->entityManager->getRepository(Album::class)->findOneBy(['nom' => $requestData['nom']]);
         if ($albumExistNom) {
-            throw new BadRequestHttpException('Un album avec ce nom existe déjà');
+            throw new BadRequestHttpException('"Ce nom a deja été choisi"');
         }
-
-
 
         $donneesInvalides = [];
         if (isset($requestData['idAlbum']) && strlen($requestData['idAlbum']) > 90) {
@@ -91,7 +89,7 @@ class AlbumController extends AbstractController
 
         if (!empty($donneesInvalides)) {
             return $this->json([
-                'message' => 'Une ou plusieurs données sont invalides',
+                'message' => 'Une ou plusieurs données sont erronées',
                 'donnees' => $donneesInvalides,
             ], JsonResponse::HTTP_CONFLICT);
         }
@@ -149,7 +147,11 @@ class AlbumController extends AbstractController
         }
         $requestData = $request->request->all();
 
-        // Vérifie si les champs requis sont présents et non vides dans la payload
+        $albumExistNom = $this->entityManager->getRepository(Album::class)->findOneBy(['nom' => $requestData['nom']]);
+        if ($albumExistNom) {
+            throw new BadRequestHttpException('"Ce nom a deja été choisi"');
+        }
+
         $requiredFields = ['nom', 'categ'];
         $missingFields = [];
     
@@ -183,7 +185,7 @@ class AlbumController extends AbstractController
 
         if (!empty($invalidData)) {
             return $this->json([
-                'message' => 'Une ou plusieurs données sont invalides',
+                'message' => 'Une ou plusieurs données sont erronées',
                 'data' => $invalidData,
             ], JsonResponse::HTTP_CONFLICT);
         }
