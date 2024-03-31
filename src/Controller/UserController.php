@@ -181,6 +181,23 @@ class UserController extends AbstractController
 
         $minimumAge = $hasArtist ? 16 : 12;
 
+        $requiredFields = ['firstname', 'firstname', 'lastname', 'email', 'encrypte', 'dateBirth'];
+        $missingFields = [];
+    
+        foreach ($requiredFields as $field) {
+            if (isset($requestData[$field])) {
+                if (empty($requestData[$field])) {
+                    $missingFields[] = $field;
+                }
+            }
+        }
+    
+        if (!empty($missingFields)) {
+            return $this->json([
+                'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' .$missingFields,
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
         $invalidData = [];
 
         if (isset($requestData['idUser']) && strlen($requestData['idUser']) > 90) {

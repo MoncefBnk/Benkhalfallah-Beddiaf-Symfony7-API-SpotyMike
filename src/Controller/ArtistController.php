@@ -153,6 +153,43 @@ class ArtistController extends AbstractController
             $requestData = json_decode($request->getContent(), true);
         }
 
+        $requiredFields = ['fullname', 'label'];
+        $missingFields = [];
+    
+        foreach ($requiredFields as $field) {
+            if (isset($requestData[$field])) {
+                if (empty($requestData[$field])) {
+                    $missingFields[] = $field;
+                }
+            }
+        }
+
+        if (!empty($missingFields)) {
+            return $this->json([
+                'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' .$missingFields,
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $invalidData = [];
+
+        if (isset($requestData['fullname']) && strlen($requestData['fullname']) > 90) {
+            $invalidData[] = 'fullname';
+        }
+
+        if (isset($requestData['label']) && strlen($requestData['label']) > 55) {
+            $invalidData[] = 'label';
+        }
+
+        if (isset($requestData['description']) && strlen($requestData['description']) > 55) {
+            $invalidData[] = 'description';
+        }
+        if (!empty($invalidData)) {
+            return $this->json([
+                'message' => 'Une ou plusieurs données sont erronées',
+                'data' => $invalidData,
+            ], JsonResponse::HTTP_CONFLICT);
+        }
+
         if (isset($requestData['fullname'])) {
             $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
             if ($existingArtistWithFullname) {
