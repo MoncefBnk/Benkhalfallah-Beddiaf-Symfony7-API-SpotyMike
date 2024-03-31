@@ -190,12 +190,12 @@ class User
         return $this;
     }
 
-    public function getBirthDate(): ?\DateTimeInterface
+    public function getDateBirth(): ?\DateTimeInterface
     {
         return $this->dateBirth;
     }
 
-    public function setBirthDate(?\DateTimeInterface $dateBirth): static
+    public function setDateBirth(?\DateTimeInterface $dateBirth): static
     {
         $this->dateBirth = $dateBirth;
 
@@ -228,7 +228,7 @@ class User
             'email' => $this->getEmail(),
             'tel' => $this->getTel(),
             'sexe' => $this->getSexe(),
-            'birthDate'=>$this->getBirthDate(),
+            'dateBirth'=>$this->getDateBirth(),
             'created at' => $this->getCreateAt(),
             'updated at' => $this->getUpdateAt(),
             'artist' => $this->getArtist() ?  $this->getArtist()->artistSerializer() : [],

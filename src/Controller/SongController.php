@@ -116,6 +116,7 @@ public function createSong(Request $request): JsonResponse
             $song->setVisibility($data['visibility']);
         }
 
+        $this->entityManager->persist($song);
         $this->entityManager->flush();
 
         return $this->json([

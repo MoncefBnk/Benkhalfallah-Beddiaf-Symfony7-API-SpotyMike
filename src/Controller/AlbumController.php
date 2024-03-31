@@ -134,6 +134,7 @@ public function createAlbum(Request $request): JsonResponse
         }
        
     
+        $this->entityManager->persist($album);
         $this->entityManager->flush();
     
         return $this->json([
