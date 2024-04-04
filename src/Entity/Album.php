@@ -181,6 +181,10 @@ class Album
     
     public function albumSerializer()
     {
+        $songs = [];
+    foreach ($this->getSongIdSong() as $song) {
+        $songs[] = $song->songSerializer();
+    }
 
         return [
             'name' => $this->getNom(),
@@ -190,6 +194,7 @@ class Album
             'createdAt' => $this->getCreateAt(),
             'updatedAt' => $this->getUpdateAt(),
             'artist' =>$this->getArtistUserIdUser() ?  $this->getArtistUserIdUser()->artistSerializer() : [],
+            'songs' => $songs,
         ];
     }
 }

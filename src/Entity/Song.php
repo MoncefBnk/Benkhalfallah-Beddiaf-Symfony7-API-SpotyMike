@@ -22,7 +22,7 @@ class Song
     private ?string $title = null;
 
     #[ORM\Column(length: 125)]
-    private ?string $url = null;
+    private ?string $stream = null;
 
     #[ORM\Column(length: 125)]
     private ?string $cover = null;
@@ -76,14 +76,14 @@ class Song
         return $this;
     }
 
-    public function getUrl(): ?string
+    public function getStream(): ?string
     {
-        return $this->url;
+        return $this->stream;
     }
 
-    public function setUrl(string $url): static
+    public function setStream(string $stream): static
     {
-        $this->url = $url;
+        $this->stream = $stream;
 
         return $this;
     }
@@ -175,12 +175,11 @@ class Song
     {
 
         return [
-            'name' => $this->getTitle(),
-            'url' => $this->getUrl(),
+            'id' => $this->getId(),
+            'title' => $this->getTitle(),
+            'stream' => $this->getStream(),
             'cover' => $this->getCover(),
-            'visiblity' => $this->isVisibility(),
-            'url' => $this->getUrl(),
-            'album' => $this->getAlbum() ?  $this->getAlbum()->albumSerializer() : [],
+            'createdAt' => $this->getCreateAt(),
         ];
     }
 }
