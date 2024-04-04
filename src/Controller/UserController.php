@@ -181,6 +181,28 @@ class UserController extends AbstractController
 
         $minimumAge = $hasArtist ? 16 : 12;
 
+        $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
+        if ($existingUser) {
+            throw new BadRequestHttpException("Un compte utilisant cette adresse mail est déjà enregistré");
+        }
+
+        $requiredFields = ['firstname', 'firstname', 'lastname', 'email', 'encrypte', 'dateBirth'];
+        $missingFields = [];
+    
+        foreach ($requiredFields as $field) {
+            if (isset($requestData[$field])) {
+                if (empty($requestData[$field])) {
+                    $missingFields[] = $field;
+                }
+            }
+        }
+    
+        if (!empty($missingFields)) {
+            return $this->json([
+                'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' .$missingFields,
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
         $invalidData = [];
 
         if (isset($requestData['idUser']) && strlen($requestData['idUser']) > 90) {
