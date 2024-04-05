@@ -21,6 +21,9 @@ class Label
     #[ORM\Column(length: 45)]
     private ?string $name = null;
 
+    #[ORM\ManyToOne(inversedBy: 'idLabel')]
+    private ?LabelHasArtist $labelHasArtist = null;
+
    
     public function __construct()
     {
@@ -63,5 +66,17 @@ class Label
             'name' => $this->getName(),
             'idLabel' => $this->getIdLabel(),
         ];
+    }
+
+    public function getLabelHasArtist(): ?LabelHasArtist
+    {
+        return $this->labelHasArtist;
+    }
+
+    public function setLabelHasArtist(?LabelHasArtist $labelHasArtist): static
+    {
+        $this->labelHasArtist = $labelHasArtist;
+
+        return $this;
     }
 }

@@ -35,6 +35,10 @@ class Artist
     #[ORM\OneToMany(targetEntity: Album::class, mappedBy: 'artist_User_idUser')]
     private Collection $albums;
 
+    #[ORM\ManyToOne(inversedBy: 'idArtist')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?LabelHasArtist $LabelHasArtist = null;
+
 
     public function __construct()
     {
@@ -160,5 +164,17 @@ class Artist
             'label' => $this->getLabel(),
             'description' => $this->getDescription(),
         ];
+    }
+
+    public function getLabelHasArtist(): ?LabelHasArtist
+    {
+        return $this->LabelHasArtist;
+    }
+
+    public function setLabelHasArtist(?LabelHasArtist $LabelHasArtist): static
+    {
+        $this->LabelHasArtist = $LabelHasArtist;
+
+        return $this;
     }
 }
