@@ -14,6 +14,9 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use App\DataFixtures\AppFixtures;
 use DateTime;
 use Doctrine\ORM\Mapping\Id;
+use Lexik\Bundle\JWTAuthenticationBundle\Security\Authentication\Token\PreAuthenticationJWTUserToken;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Component\Security\Core\Authentication\Token\PreAuthenticatedToken;
 
 class UserController extends AbstractController
 {
@@ -153,8 +156,12 @@ class UserController extends AbstractController
     }
 
     #[Route('/user', name: 'app_update_user', methods: ['PUT'])]
-    public function updateUser(Request $request): JsonResponse
+    public function updateUser(Request $request, JWTTokenManagerInterface $JWTManager ): JsonResponse
     {
+        $token = explode(" ", $request->headers->get('Authorization'))[1];
+        dd($token);
+        $decodeToken = $JWTManager->decode(new PreAuthenticationJWTUserToken($token));
+
         $requestData = $request->request->all();
 
         if ($request->headers->get('content-type') === 'application/json') {

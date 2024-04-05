@@ -4,6 +4,8 @@ namespace App\Controller;
 
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTManagerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 use Symfony\Component\Routing\Attribute\Route;
@@ -23,16 +25,21 @@ class LoginController extends AbstractController
 
     
     #[Route('/login', name: 'app_login_post', methods: ['POST', 'PUT'])]
-    public function login(Request $request): JsonResponse
+    public function login(Request $request, JWTTokenManagerInterface $JWTManager ): JsonResponse
     {
-        $user  = $this->repository->findOneBy(["email" => "moncef-benkhalfallah@outlook.com"]);
+        $user  = $this->repository->findOneBy(["email" => "moncef1@gmail.com"]);
+
+        $parametres = json_decode($request->getContent(), true);
+
         return $this->json([
+            'token' => $JWTManager->create($user),
             'user' => json_encode($user),
             'data' => $request->getContent(),
-            'message' => 'Welcome to your new controller!',
+            'message' => 'Welcome to SpotyMike!',
             'path' => 'src/Controller/LoginController.php',
         ]);
     }
+
     #[Route('/', name: 'app_index', methods: ['GET'])]
     public function index(Request $request): Response
     {

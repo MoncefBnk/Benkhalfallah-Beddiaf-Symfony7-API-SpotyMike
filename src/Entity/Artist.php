@@ -35,10 +35,14 @@ class Artist
     #[ORM\OneToMany(targetEntity: Album::class, mappedBy: 'artist_User_idUser')]
     private Collection $albums;
 
+    #[ORM\ManyToMany(targetEntity: LabelHasArtist::class, mappedBy: 'idArtist')]
+    private Collection $labelHasArtists;
+
     public function __construct()
     {
         $this->songs = new ArrayCollection();
         $this->albums = new ArrayCollection();
+        $this->labelHasArtists = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -158,5 +162,32 @@ class Artist
             'label' => $this->getLabel(),
             'description' => $this->getDescription(),
         ];
+    }
+
+    /**
+     * @return Collection<int, LabelHasArtist>
+     */
+    public function getLabelHasArtists(): Collection
+    {
+        return $this->labelHasArtists;
+    }
+
+    public function addLabelHasArtist(LabelHasArtist $labelHasArtist): static
+    {
+        if (!$this->labelHasArtists->contains($labelHasArtist)) {
+            $this->labelHasArtists->add($labelHasArtist);
+            $labelHasArtist->addIdArtist($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLabelHasArtist(LabelHasArtist $labelHasArtist): static
+    {
+        if ($this->labelHasArtists->removeElement($labelHasArtist)) {
+            $labelHasArtist->removeIdArtist($this);
+        }
+
+        return $this;
     }
 }
