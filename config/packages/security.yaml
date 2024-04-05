@@ -16,14 +16,6 @@ security:
                 check_path: /login
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
-
-        api:
-            pattern:   ^/
-            stateless: true
-            jwt: ~
-
-       
-
         main:
             lazy: true
             provider: users_in_memory

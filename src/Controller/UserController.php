@@ -21,11 +21,13 @@ use Symfony\Component\Security\Core\Authentication\Token\PreAuthenticatedToken;
 class UserController extends AbstractController
 {
     private $entityManager;
+    private $tokenVerifier;
     private $repository;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    public function __construct(EntityManagerInterface $entityManager, TokenVerifierService $tokenVerifier)
     {
         $this->entityManager = $entityManager;
+        $this->tokenVerifier = $tokenVerifier;
         $this->repository = $entityManager->getRepository(User::class);
     }
 
@@ -46,124 +48,116 @@ class UserController extends AbstractController
         ]);
     }
 
-    #[Route('/register', name: 'app_create_user', methods: ['POST'])]
-    public function createUser(Request $request): JsonResponse
-    {
-        $requestData = $request->request->all();
+    // #[Route('/register', name: 'app_create_user', methods: ['POST'])]
+    // public function createUser(Request $request): JsonResponse
+    // {
+    //     $requestData = $request->request->all();
 
-        if ($request->headers->get('content-type') === 'application/json') {
-            $requestData = json_decode($request->getContent(), true);
-        }
+    //     if ($request->headers->get('content-type') === 'application/json') {
+    //         $requestData = json_decode($request->getContent(), true);
+    //     }
 
-        $requiredFields = ['firstname', 'firstname', 'lastname', 'email', 'encrypte', 'dateBirth'];
+    //     $requiredFields = ['firstname', 'firstname', 'lastname', 'email', 'encrypte', 'dateBirth'];
 
-        foreach ($requiredFields as $field) {
-            if (!isset($requestData[$field])) {
-                return $this->json([
-                    'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' . $field,
-                ], JsonResponse::HTTP_BAD_REQUEST); // 409 Conflict
-            }
-        }
+    //     foreach ($requiredFields as $field) {
+    //         if (!isset($requestData[$field])) {
+    //             return $this->json([
+    //                 'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' . $field,
+    //             ], JsonResponse::HTTP_BAD_REQUEST); // 409 Conflict
+    //         }
+    //     }
 
-        $existingUserWithIdUser = $this->repository->findOneBy(['idUser' => $requestData['idUser']]);
-        if ($existingUserWithIdUser) {
-            throw new BadRequestHttpException("Un compte utilisant cette IdUser est déjà enregistré");
-        } // 409 Conflict
+    //     $existingUserWithIdUser = $this->repository->findOneBy(['idUser' => $requestData['idUser']]);
+    //     if ($existingUserWithIdUser) {
+    //         throw new BadRequestHttpException("Un compte utilisant cette IdUser est déjà enregistré");
+    //     } // 409 Conflict
 
-        $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
-        if ($existingUser) {
-            throw new BadRequestHttpException("Un compte utilisant cette adresse mail est déjà enregistré");
-        } // 409 Conflict
-        $dateBirth = DateTimeImmutable::createFromFormat('d-m-Y', $requestData['dateBirth']);
+    //     $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
+    //     if ($existingUser) {
+    //         throw new BadRequestHttpException("Un compte utilisant cette adresse mail est déjà enregistré");
+    //     } // 409 Conflict
+    //     $dateBirth = DateTimeImmutable::createFromFormat('d-m-Y', $requestData['dateBirth']);
 
-        if ($dateBirth === false) {
-            throw new BadRequestHttpException('Invalid birth date format. Please enter the date in dd-mm-yyyy format.');
-        }
+    //     if ($dateBirth === false) {
+    //         throw new BadRequestHttpException('Invalid birth date format. Please enter the date in dd-mm-yyyy format.');
+    //     }
 
-        $today = new DateTime();
-        $age = $today->diff($dateBirth)->y;
+    //     $today = new DateTime();
+    //     $age = $today->diff($dateBirth)->y;
 
-        if ($age < 12) {
-            throw new BadRequestHttpException("L'âge de l'utilisateur ne permet pas(12ans)");
-        } // 406 Bad Request
+    //     if ($age < 12) {
+    //         throw new BadRequestHttpException("L'âge de l'utilisateur ne permet pas(12ans)");
+    //     } // 406 Bad Request
 
-        $invalidData = [];
+    //     $invalidData = [];
 
-        if (isset($requestData['idUser']) && strlen($requestData['idUser']) > 90) {
-            $invalidData[] = 'idUser';
-        }
+    //     if (isset($requestData['idUser']) && strlen($requestData['idUser']) > 90) {
+    //         $invalidData[] = 'idUser';
+    //     }
 
-        if (isset($requestData['firstname']) && strlen($requestData['firstname']) > 55) {
-            $invalidData[] = 'firstname';
-        }
+    //     if (isset($requestData['firstname']) && strlen($requestData['firstname']) > 55) {
+    //         $invalidData[] = 'firstname';
+    //     }
 
-        if (isset($requestData['lastname']) && strlen($requestData['lastname']) > 55) {
-            $invalidData[] = 'lastname';
-        }
+    //     if (isset($requestData['lastname']) && strlen($requestData['lastname']) > 55) {
+    //         $invalidData[] = 'lastname';
+    //     }
 
-        if (isset($requestData['email']) && strlen($requestData['email']) > 80) {
-            $invalidData[] = 'email';
-        }
-        if (isset($requestData['encrypt']) && strlen($requestData['encrypt']) > 30) {
-            $invalidData[] = 'encrypt';
-        }
+    //     if (isset($requestData['email']) && strlen($requestData['email']) > 80) {
+    //         $invalidData[] = 'email';
+    //     }
+    //     if (isset($requestData['encrypt']) && strlen($requestData['encrypt']) > 30) {
+    //         $invalidData[] = 'encrypt';
+    //     }
 
-        if (isset($requestData['tel']) && strlen($requestData['tel']) > 15) {
-            $invalidData[] = 'tel';
-        }
+    //     if (isset($requestData['tel']) && strlen($requestData['tel']) > 15) {
+    //         $invalidData[] = 'tel';
+    //     }
 
-        if (!empty($invalidData)) {
-            return $this->json([
-                'message' => 'Une ou plusieurs donnée sont erronées',
-                'data' => $invalidData,
-            ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
-        }
+    //     if (!empty($invalidData)) {
+    //         return $this->json([
+    //             'message' => 'Une ou plusieurs donnée sont erronées',
+    //             'data' => $invalidData,
+    //         ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
+    //     }
 
-        $user = new User();
-        $user->setIdUser($requestData['idUser'] ?? null)
-            ->setFirstname($requestData['firstname'] ?? null)
-            ->setLastname($requestData['lastname'] ?? null)
-            ->setEmail($requestData['email'] ?? null)
-            ->setSexe($requestData['sexe'] ?? null)
-            ->setEncrypte($requestData['encrypte'] ?? null)
-            ->setTel($requestData['tel'] ?? null)
-            ->setDateBirth($dateBirth)
-            ->setCreateAt(new DateTimeImmutable())
-            ->setUpdateAt(new DateTimeImmutable());
+    //     $user = new User();
+    //     $user->setIdUser($requestData['idUser'] ?? null)
+    //         ->setFirstname($requestData['firstname'] ?? null)
+    //         ->setLastname($requestData['lastname'] ?? null)
+    //         ->setEmail($requestData['email'] ?? null)
+    //         ->setSexe($requestData['sexe'] ?? null)
+    //         ->setEncrypte($requestData['encrypte'] ?? null)
+    //         ->setTel($requestData['tel'] ?? null)
+    //         ->setDateBirth($dateBirth)
+    //         ->setCreateAt(new DateTimeImmutable())
+    //         ->setUpdateAt(new DateTimeImmutable());
 
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
+    //     $this->entityManager->persist($user);
+    //     $this->entityManager->flush();
 
 
-        return $this->json([
-            'user' => $user->userSerializer(),
-            'message' => "L'utilisateur a bien été créé avec succès.",
-            'path' => 'src/Controller/UserController.php',
-        ], Response::HTTP_CREATED);
-    }
+    //     return $this->json([
+    //         'user' => $user->userSerializer(),
+    //         'message' => "L'utilisateur a bien été créé avec succès.",
+    //         'path' => 'src/Controller/UserController.php',
+    //     ], Response::HTTP_CREATED);
+    // }
 
     #[Route('/user', name: 'app_update_user', methods: ['PUT'])]
-    public function updateUser(Request $request, JWTTokenManagerInterface $JWTManager ): JsonResponse
+    public function updateUser(Request $request ): JsonResponse
     {
-        $token = explode(" ", $request->headers->get('Authorization'))[1];
-        dd($token);
-        $decodeToken = $JWTManager->decode(new PreAuthenticationJWTUserToken($token));
+        $dataMiddellware = $this->tokenVerifier->checkToken($request);
+        if(gettype($dataMiddellware) == 'boolean'){
+            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
+        }
+        $user = $dataMiddellware;
 
         $requestData = $request->request->all();
 
         if ($request->headers->get('content-type') === 'application/json') {
             $requestData = json_decode($request->getContent(), true);
         }
-
-        $userId = $requestData['id'] ?? null;
-
-        if (!$userId) {
-            return $this->json([
-                'message' => 'Identifiant utilisateur manquant dans le corps de la requête',
-            ], JsonResponse::HTTP_BAD_REQUEST);
-        }
-
-        $user = $this->entityManager->getRepository(User::class)->find($userId);
 
         if (!$user) {
             return $this->json([
@@ -175,12 +169,7 @@ class UserController extends AbstractController
 
         $minimumAge = $hasArtist ? 16 : 12;
 
-        $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
-        if ($existingUser) {
-            throw new BadRequestHttpException("Un compte utilisant cette adresse mail est déjà enregistré");
-        }
-
-        $requiredFields = ['firstname', 'firstname', 'lastname', 'email', 'encrypte', 'dateBirth'];
+        $requiredFields = ['firstname', 'lastname', 'dateBirth'];
         $missingFields = [];
     
         foreach ($requiredFields as $field) {
@@ -211,14 +200,6 @@ class UserController extends AbstractController
             $invalidData[] = 'lastname';
         }
 
-        if (isset($requestData['email']) && strlen($requestData['email']) > 80) {
-            $invalidData[] = 'email';
-        }
-
-        if (isset($requestData['encrypte']) && strlen($requestData['encrypte']) > 30) {
-            $invalidData[] = 'encrypte';
-        }
-
         if (isset($requestData['tel']) && strlen($requestData['tel']) > 15) {
             $invalidData[] = 'tel';
         }
@@ -236,19 +217,8 @@ class UserController extends AbstractController
         if (isset($requestData['lastname'])) {
             $user->setLastname($requestData['lastname']);
         }
-        if (isset($requestData['email'])) {
-            $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
-            if ($existingUser && $existingUser->getId() !== $user->getId()) {
-                throw new BadRequestHttpException('Adresse e-mail déjà utilisée');
-            } else {
-                $user->setEmail($requestData['email']);
-            }
-        }
         if (isset($requestData['sexe'])) {
             $user->setSexe($requestData['sexe']);
-        }
-        if (isset($requestData['encrypte'])) {
-            $user->setEncrypte($requestData['encrypte']);
         }
         if (isset($requestData['tel'])) {
             $user->setTel($requestData['tel']);

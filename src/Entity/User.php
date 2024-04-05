@@ -5,11 +5,12 @@ namespace App\Entity;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-class User implements UserInterface
+class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -117,12 +118,12 @@ class User implements UserInterface
         return $this;
     }
 
-    public function getEncrypte(): ?string
+    public function getPassword(): ?string
     {
         return $this->encrypte;
     }
 
-    public function setEncrypte(string $encrypte): static
+    public function setPassword(string $encrypte): static
     {
         $this->encrypte = $encrypte;
 
