@@ -58,7 +58,7 @@ class LoginController extends AbstractController
         if (!preg_match($passwordRequirements, $password)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Format de mot de passe invalide. Le mot de passe doit comporter au moins 8 caractères et contenir au moins une lettre majuscule, une lettre minuscule, un chiffre et un caractère spécial.',
+                'message' => 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et avoir 8 caractères minimum',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
 
