@@ -39,26 +39,42 @@ class LoginController extends AbstractController
         return new Response($content);
     }
     
-    #[Route('/login', name: 'app_login_post', methods: ['POST', 'PUT'])]
+    #[Route('/login', name: 'app_login_post', methods: ['POST'])]
     public function login(Request $request, JWTTokenManagerInterface $JWTManager, UserPasswordHasherInterface $passwordHash): JsonResponse
     {
         $email = $request->request->get('email');
         $password = $request->request->get('password');
 
+        // Validate email format
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le format de l\'email est invalide',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
+
+        // Validate password requirements
+        $passwordRequirements = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/';
+        if (!preg_match($passwordRequirements, $password)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Format de mot de passe invalide. Le mot de passe doit comporter au moins 8 caractères et contenir au moins une lettre majuscule, une lettre minuscule, un chiffre et un caractère spécial.',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
+
         $user = $this->repository->findOneBy(["email" => $email]);
 
         if (!$user || !$passwordHash->isPasswordValid($user, $password)) {
             return $this->json([
-                'message' => 'Invalid email or password',
+                'message' => 'Invalid credentials. Please try again.',
             ], JsonResponse::HTTP_UNAUTHORIZED); // 401 Unauthorized
         }
 
         return $this->json([
-            'token' => $JWTManager->create($user),
-            'user' => json_encode($user),
-            'data' => $request->getContent(),
-            'message' => 'Welcome to SpotyMike!',
-            'path' => 'src/Controller/LoginController.php',
+            'error' => false,
+            'message' => 'l\'utilisateur a été authentifié avec succès',
+            'user' => $user->userSerializer(),
+            'token' => $JWTManager->create($user), // A ENLEVER //
         ]);
     }
 
