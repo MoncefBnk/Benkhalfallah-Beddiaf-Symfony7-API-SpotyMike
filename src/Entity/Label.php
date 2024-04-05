@@ -21,12 +21,10 @@ class Label
     #[ORM\Column(length: 45)]
     private ?string $name = null;
 
-    #[ORM\ManyToMany(targetEntity: LabelHasArtist::class, mappedBy: 'idLabel')]
-    private Collection $labelHasArtists;
-
+   
     public function __construct()
     {
-        $this->labelHasArtists = new ArrayCollection();
+        
     }
 
     public function getId(): ?int
@@ -58,30 +56,12 @@ class Label
         return $this;
     }
 
-    /**
-     * @return Collection<int, LabelHasArtist>
-     */
-    public function getLabelHasArtists(): Collection
+    public function labelSerializer()
     {
-        return $this->labelHasArtists;
-    }
-
-    public function addLabelHasArtist(LabelHasArtist $labelHasArtist): static
-    {
-        if (!$this->labelHasArtists->contains($labelHasArtist)) {
-            $this->labelHasArtists->add($labelHasArtist);
-            $labelHasArtist->addIdLabel($this);
-        }
-
-        return $this;
-    }
-
-    public function removeLabelHasArtist(LabelHasArtist $labelHasArtist): static
-    {
-        if ($this->labelHasArtists->removeElement($labelHasArtist)) {
-            $labelHasArtist->removeIdLabel($this);
-        }
-
-        return $this;
+    
+        return [
+            'name' => $this->getName(),
+            'idLabel' => $this->getIdLabel(),
+        ];
     }
 }

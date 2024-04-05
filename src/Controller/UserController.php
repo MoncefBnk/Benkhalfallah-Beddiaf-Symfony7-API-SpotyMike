@@ -84,21 +84,8 @@ class UserController extends AbstractController
         $age = $today->diff($dateBirth)->y;
 
         if ($age < 12) {
-            throw new BadRequestHttpException("L'âge de l'utilisateur ne permet pas (12 ans)");
+            throw new BadRequestHttpException("L'âge de l'utilisateur ne permet pas(12ans)");
         } // 406 Bad Request
-
-        // switch ($requestData) {
-        //     case 'idUser' && strlen($requestData['idUser']) > 90:
-        //         throw new BadRequestHttpException('idUser too long');
-        //     case 'name' && strlen($requestData['firstname']) > 55:
-        //         throw new BadRequestHttpException('User name too long');
-        //     case 'email' && strlen($requestData['email']) > 80:
-        //         throw new BadRequestHttpException('User email too long');
-        //     case 'encrypte' && strlen($requestData['encrypte']) > 90:
-        //         throw new BadRequestHttpException('User Password too long');
-        //     case 'tel' && strlen($requestData['tel']) > 15:
-        //         throw new BadRequestHttpException('Phone number too long');
-        // }
 
         $invalidData = [];
 
