@@ -40,23 +40,18 @@ class LoginController extends AbstractController
     }
     
     #[Route('/login', name: 'app_login_post', methods: ['POST', 'PUT'])]
-    public function login(Request $request, JWTTokenManagerInterface $JWTManager ): JsonResponse
+    public function login(Request $request, JWTTokenManagerInterface $JWTManager, UserPasswordHasherInterface $passwordHash): JsonResponse
     {
+        $email = $request->request->get('email');
+        $password = $request->request->get('password');
 
+        $user = $this->repository->findOneBy(["email" => $email]);
 
-        $requiredFields = ['firstname', 'lastname', 'email', 'encrypte', 'dateBirth'];
-
-        foreach ($requiredFields as $field) {
-            if (!isset($requestData[$field])) {
-                return $this->json([
-                    'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' . $field,
-                ], JsonResponse::HTTP_BAD_REQUEST); // 409 Conflict
-            }
+        if (!$user || !$passwordHash->isPasswordValid($user, $password)) {
+            return $this->json([
+                'message' => 'Invalid email or password',
+            ], JsonResponse::HTTP_UNAUTHORIZED); // 401 Unauthorized
         }
-        
-        $user  = $this->repository->findOneBy(["email" => "moncef2@gmail.com"]);
-
-        $parametres = json_decode($request->getContent(), true);
 
         return $this->json([
             'token' => $JWTManager->create($user),
@@ -162,6 +157,8 @@ class LoginController extends AbstractController
 
 
         return $this->json([
+            'isNotGoodPassword' => ($passwordHash->isPasswordValid($user, 'Zoubida') ),
+            'isGoodPassword' => ($passwordHash->isPasswordValid($user, $password) ),
             'user' => $user->userSerializer(),
             'message' => "L'utilisateur a bien été créé avec succès.",
             'path' => 'src/Controller/UserController.php',
