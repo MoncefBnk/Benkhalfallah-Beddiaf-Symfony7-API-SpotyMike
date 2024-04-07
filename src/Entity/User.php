@@ -266,7 +266,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             'sexe' => $this->getSexe(),
             'dateBirth'=>$dateBirthFormatted,
             'createdAt' => $this->getCreateAt(),
-            'updatedAt' => $this->getUpdateAt(),
+            'updateAt' => $this->getUpdateAt(),
             'artist' => $this->getArtist() ?  $this->getArtist()->artistSerializer() : [],
         ];
     }

@@ -6,16 +6,16 @@ use App\Entity\User;
 use DateTime;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
-
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
+
 
 class LoginController extends AbstractController
 {
@@ -93,8 +93,9 @@ class LoginController extends AbstractController
         foreach ($requiredFields as $field) {
             if (!isset($requestData[$field])) {
                 return $this->json([
-                    'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' . $field,
-                ], JsonResponse::HTTP_BAD_REQUEST); // 409 Conflict
+                    'error' => true,
+                    'message' => 'Des champs obligatoires sont manquants',
+                ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
             }
         }
 
@@ -107,7 +108,7 @@ class LoginController extends AbstractController
         if ($existingUser) {
             throw new BadRequestHttpException("Un compte utilisant cette adresse mail est déjà enregistré");
         } // 409 Conflict
-        $dateBirth = DateTimeImmutable::createFromFormat('d-m-Y', $requestData['dateBirth']);
+        $dateBirth = DateTimeImmutable::createFromFormat('d/m/Y', $requestData['dateBirth']);
 
         if ($dateBirth === false) {           
             throw new BadRequestHttpException("Le format de la date de naissance est invalide. le format attendu est JJ/MM/AAAA");
@@ -194,19 +195,74 @@ class LoginController extends AbstractController
             ->setCreateAt(new DateTimeImmutable())
             ->setUpdateAt(new DateTimeImmutable());
         
-
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
 
         return $this->json([
-            'isNotGoodPassword' => ($passwordHash->isPasswordValid($user, 'Zoubida') ),
-            'isGoodPassword' => ($passwordHash->isPasswordValid($user, $password) ),
-            'user' => $user->userSerializer(),
+            'error' => false,
             'message' => "L'utilisateur a bien été créé avec succès.",
-            'path' => 'src/Controller/UserController.php',
+            'user' => $user->userSerializer(),
         ], Response::HTTP_CREATED);
     }
 
+    #[Route('/password-reset', name: 'app_reset_password', methods: ['POST'])]
+    // it requires email then if it exists in the database it will send an email to the user with a link to reset the password
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $requestData = $request->request->all();
 
+        if ($request->headers->get('content-type') === 'application/json') {
+            $requestData = json_decode($request->getContent(), true);
+        }
+
+        $email = $requestData['email'] ?? null;
+        if (empty($email)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Email manquant. Veuillez fournir votre email pour la récupération du mot de passe',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le format de l\'email est invalide. Veuillez entrer un email valide',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
+
+        // Rate limiter
+        $cache = new FilesystemAdapter();
+        $cacheKey = 'reset_password_' . urlencode($email);
+        $cacheItem = $cache->getItem($cacheKey);
+        $requestCount = $cacheItem->get() ?? 0;
+
+        if ($requestCount >= 3) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Trop de demande de réinitialisation de mot de passe ( 3 max ). Veuillez attendre avant de réessayer ( Dans 5 min).',
+            ], JsonResponse::HTTP_TOO_MANY_REQUESTS); // 429 Too Many Requests
+        }
+
+        $cacheItem->set($requestCount + 1);
+        $cacheItem->expiresAfter(5); // 20 seconds
+        $cache->save($cacheItem);
+
+        $user = $this->repository->findOneBy(['email' => $email]);
+
+        if (!$user) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Aucun compte n\'est associé à cet email. Veuillez vérifier et réessayer.',
+            ], JsonResponse::HTTP_NOT_FOUND); // 404 Not Found
+        }
+
+        // send email to the user with a link to reset the password
+        // $this->mailer->send($email, 'Reset your password', 'Click on the link below to reset your password: http://localhost:8000/reset-password/' . $user->getId());
+
+        return $this->json([
+            'success' => true,
+            'message' => 'Un email de réinitialisation de mot de passe a été envoyé à votre adresse email. Veuillez suivre les instructions contenues dans l\'email pour réinitialiser votre mot de passe.',
+        ]);
+    }
 }
