@@ -70,6 +70,13 @@ class LoginController extends AbstractController
             ], JsonResponse::HTTP_UNAUTHORIZED); // 401 Unauthorized
         }
 
+        if ($user->getActive() === 'Inactif') {
+            return $this->json([
+                'error' => true,
+                'message' => 'Votre compte est inactif. Veuillez contacter le support pour plus d\'informations.',
+            ], JsonResponse::HTTP_FORBIDDEN); // 403 Forbidden
+        }
+
         return $this->json([
             'error' => false,
             'message' => 'l\'utilisateur a été authentifié avec succès',
@@ -192,6 +199,7 @@ class LoginController extends AbstractController
             ->setPassword($hash)
             ->setTel($requestData['tel'] ?? null)
             ->setDateBirth($dateBirth)
+            ->setActive('Actif')
             ->setCreateAt(new DateTimeImmutable())
             ->setUpdateAt(new DateTimeImmutable());
         
