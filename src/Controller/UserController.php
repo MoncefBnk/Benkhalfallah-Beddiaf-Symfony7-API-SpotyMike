@@ -295,6 +295,13 @@ class UserController extends AbstractController
         $user->setActive(false);
         $user->setUpdateAt(new DateTimeImmutable());
 
+        //if user has artist profile, deactivate it
+        if ($user->getArtist()) {
+            $artist = $user->getArtist();
+            $artist->setActive('inactive');
+            $this->entityManager->persist($artist);
+        }
+
         $this->entityManager->persist($user);
         $this->entityManager->flush();
 
