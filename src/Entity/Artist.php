@@ -35,10 +35,16 @@ class Artist
     #[ORM\OneToMany(targetEntity: Album::class, mappedBy: 'artist_User_idUser')]
     private Collection $albums;
 
+    #[ORM\ManyToOne(inversedBy: 'idArtist')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?LabelHasArtist $LabelHasArtist = null;
+
+
     public function __construct()
     {
         $this->songs = new ArrayCollection();
         $this->albums = new ArrayCollection();
+
     }
 
     public function getId(): ?int
@@ -152,11 +158,23 @@ class Artist
     }
     public function artistSerializer()
     {
-
+    
         return [
             'fullname' => $this->getFullname(),
             'label' => $this->getLabel(),
             'description' => $this->getDescription(),
         ];
+    }
+
+    public function getLabelHasArtist(): ?LabelHasArtist
+    {
+        return $this->LabelHasArtist;
+    }
+
+    public function setLabelHasArtist(?LabelHasArtist $LabelHasArtist): static
+    {
+        $this->LabelHasArtist = $LabelHasArtist;
+
+        return $this;
     }
 }
