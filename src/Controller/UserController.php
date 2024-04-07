@@ -153,6 +153,124 @@ class UserController extends AbstractController
         ]);
     }
 
+    #[Route('/user', name: 'app_create_user', methods: ['POST'])]
+    public function createUser(Request $request): JsonResponse
+    {
+        
+        $dataMiddellware = $this->tokenVerifier->checkToken($request);
+        if (gettype($dataMiddellware) == 'boolean') {
+            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
+        }
+        
+
+         if (!$dataMiddellware) {
+             return $this->json([
+                 'error' => true,
+                 'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
+             ], JsonResponse::HTTP_UNAUTHORIZED);
+         }
+
+        $requestData = $request->request->all();
+
+        if ($request->headers->get('content-type') === 'application/json') {
+            $requestData = json_decode($request->getContent(), true);
+        }
+
+        $invalidData = [];
+
+        if (isset($requestData['firstname'])) {
+            $firstname = $requestData['firstname'];
+            // Validate firstname format
+            if (!preg_match('/^[a-zA-Z\s]+$/', $firstname)) {
+                $invalidData[] = 'firstname';
+            }
+            // Validate firstname length
+            if (strlen($firstname) > 20) {
+                $invalidData[] = 'firstname';
+            }
+        }
+
+        if (isset($requestData['lastname'])) {
+            $lastname = $requestData['lastname'];
+            // Validate lastname format
+            if (!preg_match('/^[a-zA-Z\s]+$/', $lastname)) {
+                $invalidData[] = 'lastname';
+            }
+            // Validate lastname length
+            if (strlen($lastname) > 20) {
+                $invalidData[] = 'lastname';
+            }
+        }
+
+        if (isset($requestData['sexe'])) {
+            $sexe = $requestData['sexe'];
+            if ($sexe != 0 && $sexe != 1) {
+                return $this->json([
+                    'error' => true,
+                    'message' => 'La valeur du champ sexe est invalide. Les valeurs autorisées sont 0 pour Femme et 1 pour Homme ',
+                ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+            }
+        }
+        
+        if (isset($requestData['tel'])) {
+            $tel = $requestData['tel'];
+            // Validate tel requirements
+            if (!preg_match('/^06[0-9]{8}$/', $tel)) {
+                return $this->json([
+                    'error' => true,
+                    'message' => 'Le format du numéro de téléphone est invalide',
+                ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+            }
+
+            // Check if phone number is already used
+            $existingUser = $this->repository->findOneBy(['tel' => $tel]);
+            if ($existingUser) {
+                return $this->json([
+                    'error' => true,
+                    'message' => 'Conflit de données. Le numéro de téléphone est déjà utilisé par un autre utilisateur',
+                ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
+            }
+        }
+
+        if (!empty($invalidData)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Les données fournies sont invalides ou incomplètes.',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
+
+        
+
+        $user = new User();
+
+        if (isset($requestData['firstname'])) {
+            $user->setFirstname($requestData['firstname']);
+        }
+        if (isset($requestData['lastname'])) {
+            $user->setLastname($requestData['lastname']);
+        }
+        if (isset($requestData['sexe'])) {
+            $sexe = $requestData['sexe'];
+            if ($sexe == 0) {
+                $user->setSexe('Femme');
+            } elseif ($sexe == 1) {
+                $user->setSexe('Homme');
+            }
+        }
+        if (isset($requestData['tel'])) {
+            $user->setTel($requestData['tel']);
+        }
+    
+        $user->setUpdateAt(new DateTimeImmutable());
+
+        $this->entityManager->persist($user);
+        $this->entityManager->flush();
+
+        return $this->json([
+            'error' => 'false',
+            'message' => 'Votre inscription a été prise en compte',
+        ]);
+    }
 
     #[Route('/user/{id}', name: 'app_delete_user', methods: ['DELETE'])]
     public function deleteUser(int $id): JsonResponse

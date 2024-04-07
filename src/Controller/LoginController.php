@@ -109,15 +109,15 @@ class LoginController extends AbstractController
         } // 409 Conflict
         $dateBirth = DateTimeImmutable::createFromFormat('d-m-Y', $requestData['dateBirth']);
 
-        if ($dateBirth === false) {
-            throw new BadRequestHttpException('Invalid birth date format. Please enter the date in dd-mm-yyyy format.');
+        if ($dateBirth === false) {           
+            throw new BadRequestHttpException("Le format de la date de naissance est invalide. le format attendu est JJ/MM/AAAA");
         }
 
         $today = new DateTime();
         $age = $today->diff($dateBirth)->y;
 
         if ($age < 12) {
-            throw new BadRequestHttpException("L'âge de l'utilisateur ne permet pas(12ans)");
+            throw new BadRequestHttpException("l'utilisateur doit avoir au moins 12 ans");
         } // 406 Bad Request
 
         $invalidData = [];
@@ -147,12 +147,39 @@ class LoginController extends AbstractController
 
         if (!empty($invalidData)) {
             return $this->json([
+                'error' => true,
                 'message' => 'Une ou plusieurs donnée sont erronées',
                 'data' => $invalidData,
             ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         }
 
         $password = $requestData['encrypte'] ?? null;
+        $email = $requestData['email'] ?? null;
+        $tel = $requestData['tel'] ?? null;
+
+        //validate tel requirements 
+        if (!preg_match('/^06[0-9]{8}$/', $tel)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le format du numéro de téléphone est invalide',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
+
+        // Validate password requirements
+        $passwordRequirements = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/';
+        if (!preg_match($passwordRequirements, $password)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et avoir 8 caractères minimum',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
+        // Validate email format
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le format de l\'email est invalide',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
         
         $user = new User();
         $hash = $passwordHash->hashPassword($user, $password);
