@@ -306,9 +306,9 @@ class UserController extends AbstractController
         $this->entityManager->flush();
 
         return $this->json([
-            'error' => 'false',
+            'success' => true,
             'message' => 'Votre compte a été désactivé avec succès. Nous sommes désolés de vous voir partir.',
-            'path' => 'src/Controller/UserController.php',
+          
         ]);
     }
 }
