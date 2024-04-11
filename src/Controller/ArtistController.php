@@ -334,23 +334,56 @@ class ArtistController extends AbstractController
     }
 
 
-    #[Route('/artist/{id}', name: 'app_delete_artist', methods: ['DELETE'])]
-    public function deleteArtist(int $id): JsonResponse
+    //delete artist of current authenticated user
+    #[Route('/artist', name: 'app_delete_artist', methods: ['DELETE'])]
+    public function deleteArtist(Request $request): JsonResponse
     {
-        $artist = $this->entityManager->getRepository(Artist::class)->find($id);
+        $dataMiddellware = $this->tokenVerifier->checkToken($request);
+        if (gettype($dataMiddellware) == 'boolean') {
+            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
+        }
 
-        if (!$artist) {
+        if (!$dataMiddellware) {
             return $this->json([
-                'message' => 'Artist not found',
+                'error' => true,
+                'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $user = $dataMiddellware;
+
+        if (!$user) {
+            return $this->json([
+                'error' => true,
+                'message' => 'User not found',
             ], JsonResponse::HTTP_NOT_FOUND);
         }
 
-        $this->entityManager->remove($artist);
+        if ($user->getArtist() === null) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Compte Artist non trouvé. Verifiez les informations fournies et réessayez.',
+            ], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        //if already inactive return error
+        if ($user->getArtist()->getActive() === 'inactive') {
+            return $this->json([
+                'error' => true,
+                'message' => 'Ce compte artiste est deja désactivé',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $artist = $user->getArtist();
+
+        $artist->setActive('inactive');
+        $this->entityManager->persist($artist);
         $this->entityManager->flush();
 
         return $this->json([
-            'message' => 'Artist deleted successfully!',
-            'path' => 'src/Controller/ArtistController.php',
+            'error' => false,
+            'message' => 'Le compte a été désactivé avec succès',
+            
         ]);
     }
 }

@@ -208,6 +208,7 @@ class Artist
             'dateBirth'=>$dateBirthFormatted,  
             'Artist.CreatedAt' => $this->getUserIdUser()->getCreateAt(),
             'description' => $this->getDescription(),
+            'label' => $this->labelHasArtist->map(fn($label) => $label->getIdLabel()->labelSerializer()),
         ];
     }
 }
