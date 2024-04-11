@@ -38,15 +38,17 @@ class Artist
     #[ORM\OneToMany(targetEntity: Album::class, mappedBy: 'artist_User_idUser')]
     private Collection $albums;
 
-    #[ORM\ManyToOne(inversedBy: 'idArtist')]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?LabelHasArtist $LabelHasArtist = null;
+    #[ORM\OneToMany(targetEntity: LabelHasArtist::class, mappedBy: 'idArtist')]
+    private Collection $labelHasArtist;
+
+   
 
 
     public function __construct()
     {
         $this->songs = new ArrayCollection();
         $this->albums = new ArrayCollection();
+        $this->labelHasArtist = new ArrayCollection();
 
     }
 
@@ -171,17 +173,6 @@ class Artist
         return $this;
     }
     
-    public function getLabelHasArtist(): ?LabelHasArtist
-    {
-        return $this->LabelHasArtist;
-    }
-    
-    public function setLabelHasArtist(?LabelHasArtist $LabelHasArtist): static
-    {
-        $this->LabelHasArtist = $LabelHasArtist;
-        
-        return $this;
-    }
 
     public function artistSerializer()
     {
@@ -191,5 +182,35 @@ class Artist
             'label' => $this->getLabel(),
             'description' => $this->getDescription(),
         ];
+    }
+
+    /**
+     * @return Collection<int, LabelHasArtist>
+     */
+    public function getLabelHasArtist(): Collection
+    {
+        return $this->labelHasArtist;
+    }
+
+    public function addLabelHasArtist(LabelHasArtist $labelHasArtist): static
+    {
+        if (!$this->labelHasArtist->contains($labelHasArtist)) {
+            $this->labelHasArtist->add($labelHasArtist);
+            $labelHasArtist->setIdArtist($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLabelHasArtist(LabelHasArtist $labelHasArtist): static
+    {
+        if ($this->labelHasArtist->removeElement($labelHasArtist)) {
+            // set the owning side to null (unless already changed)
+            if ($labelHasArtist->getIdArtist() === $this) {
+                $labelHasArtist->setIdArtist(null);
+            }
+        }
+
+        return $this;
     }
 }

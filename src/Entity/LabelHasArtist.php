@@ -3,8 +3,6 @@
 namespace App\Entity;
 
 use App\Repository\LabelHasArtistRepository;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -16,11 +14,8 @@ class LabelHasArtist
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\OneToMany(targetEntity: Artist::class, mappedBy: 'LabelHasArtist')]
-    private Collection $idArtist;
-
-    #[ORM\OneToMany(targetEntity: Label::class, mappedBy: 'labelHasArtist')]
-    private Collection $idLabel;
+    #[ORM\Column(length: 90)]
+    private ?string $idLabelHasArtist = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $joinedAt = null;
@@ -28,73 +23,27 @@ class LabelHasArtist
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $leftAt = null;
 
-    public function __construct()
-    {
-        $this->idArtist = new ArrayCollection();
-        $this->idLabel = new ArrayCollection();
-    }
+    #[ORM\ManyToOne(inversedBy: 'labelHasArtist')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Artist $idArtist = null;
+
+    #[ORM\ManyToOne(inversedBy: 'labelHasArtist')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Label $idLabel = null;
 
     public function getId(): ?int
     {
         return $this->id;
     }
 
-    /**
-     * @return Collection<int, Artist>
-     */
-    public function getIdArtist(): Collection
+    public function getIdLabelHasArtist(): ?string
     {
-        return $this->idArtist;
+        return $this->idLabelHasArtist;
     }
 
-    public function addIdArtist(Artist $idArtist): static
+    public function setIdLabelHasArtist(string $idLabelHasArtist): static
     {
-        if (!$this->idArtist->contains($idArtist)) {
-            $this->idArtist->add($idArtist);
-            $idArtist->setLabelHasArtist($this);
-        }
-
-        return $this;
-    }
-
-    public function removeIdArtist(Artist $idArtist): static
-    {
-        if ($this->idArtist->removeElement($idArtist)) {
-            // set the owning side to null (unless already changed)
-            if ($idArtist->getLabelHasArtist() === $this) {
-                $idArtist->setLabelHasArtist(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Label>
-     */
-    public function getIdLabel(): Collection
-    {
-        return $this->idLabel;
-    }
-
-    public function addIdLabel(Label $idLabel): static
-    {
-        if (!$this->idLabel->contains($idLabel)) {
-            $this->idLabel->add($idLabel);
-            $idLabel->setLabelHasArtist($this);
-        }
-
-        return $this;
-    }
-
-    public function removeIdLabel(Label $idLabel): static
-    {
-        if ($this->idLabel->removeElement($idLabel)) {
-            // set the owning side to null (unless already changed)
-            if ($idLabel->getLabelHasArtist() === $this) {
-                $idLabel->setLabelHasArtist(null);
-            }
-        }
+        $this->idLabelHasArtist = $idLabelHasArtist;
 
         return $this;
     }
@@ -119,6 +68,30 @@ class LabelHasArtist
     public function setLeftAt(?\DateTimeInterface $leftAt): static
     {
         $this->leftAt = $leftAt;
+
+        return $this;
+    }
+
+    public function getIdArtist(): ?Artist
+    {
+        return $this->idArtist;
+    }
+
+    public function setIdArtist(?Artist $idArtist): static
+    {
+        $this->idArtist = $idArtist;
+
+        return $this;
+    }
+
+    public function getIdLabel(): ?Label
+    {
+        return $this->idLabel;
+    }
+
+    public function setIdLabel(?Label $idLabel): static
+    {
+        $this->idLabel = $idLabel;
 
         return $this;
     }

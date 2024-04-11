@@ -18,16 +18,15 @@ class Label
     #[ORM\Column(length: 90)]
     private ?string $idLabel = null;
 
-    #[ORM\Column(length: 45)]
-    private ?string $name = null;
+    #[ORM\Column(length: 90)]
+    private ?string $labelName = null;
 
-    #[ORM\ManyToOne(inversedBy: 'idLabel')]
-    private ?LabelHasArtist $labelHasArtist = null;
+    #[ORM\OneToMany(targetEntity: LabelHasArtist::class, mappedBy: 'idLabel')]
+    private Collection $labelHasArtist;
 
-   
     public function __construct()
     {
-        
+        $this->labelHasArtist = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -47,35 +46,44 @@ class Label
         return $this;
     }
 
-    public function getName(): ?string
+    public function getLabelName(): ?string
     {
-        return $this->name;
+        return $this->labelName;
     }
 
-    public function setName(string $name): static
+    public function setLabelName(string $labelName): static
     {
-        $this->name = $name;
+        $this->labelName = $labelName;
 
         return $this;
     }
 
-    public function labelSerializer()
-    {
-    
-        return [
-            'name' => $this->getName(),
-            'idLabel' => $this->getIdLabel(),
-        ];
-    }
-
-    public function getLabelHasArtist(): ?LabelHasArtist
+    /**
+     * @return Collection<int, LabelHasArtist>
+     */
+    public function getLabelHasArtist(): Collection
     {
         return $this->labelHasArtist;
     }
 
-    public function setLabelHasArtist(?LabelHasArtist $labelHasArtist): static
+    public function addLabelHasArtist(LabelHasArtist $labelHasArtist): static
     {
-        $this->labelHasArtist = $labelHasArtist;
+        if (!$this->labelHasArtist->contains($labelHasArtist)) {
+            $this->labelHasArtist->add($labelHasArtist);
+            $labelHasArtist->setIdLabel($this);
+        }
+
+        return $this;
+    }
+
+    public function removeLabelHasArtist(LabelHasArtist $labelHasArtist): static
+    {
+        if ($this->labelHasArtist->removeElement($labelHasArtist)) {
+            // set the owning side to null (unless already changed)
+            if ($labelHasArtist->getIdLabel() === $this) {
+                $labelHasArtist->setIdLabel(null);
+            }
+        }
 
         return $this;
     }
