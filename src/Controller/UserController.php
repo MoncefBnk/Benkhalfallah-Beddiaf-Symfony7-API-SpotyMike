@@ -75,7 +75,7 @@ class UserController extends AbstractController
 
     //     $requiredFields = ['firstname', 'lastname', 'dateBirth'];
     //     $missingFields = [];
-    
+
     //     foreach ($requiredFields as $field) {
     //         if (isset($requestData[$field])) {
     //             if (empty($requestData[$field])) {
@@ -83,7 +83,7 @@ class UserController extends AbstractController
     //             }
     //         }
     //     }
-    
+
     //     if (!empty($missingFields)) {
     //         return $this->json([
     //             'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' .$missingFields,
@@ -156,18 +156,18 @@ class UserController extends AbstractController
     #[Route('/user', name: 'app_update_user', methods: ['POST'])]
     public function updateUser(Request $request): JsonResponse
     {
-        
+
         $dataMiddellware = $this->tokenVerifier->checkToken($request);
         if (gettype($dataMiddellware) == 'boolean') {
             return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
         }
 
-         if (!$dataMiddellware) {
-             return $this->json([
-                 'error' => true,
-                 'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
-             ], JsonResponse::HTTP_UNAUTHORIZED);
-         }
+        if (!$dataMiddellware) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
 
         $user = $dataMiddellware;
         $requestData = $request->request->all();
@@ -211,7 +211,7 @@ class UserController extends AbstractController
                 ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
             }
         }
-        
+
         if (isset($requestData['tel'])) {
             $tel = $requestData['tel'];
             // Validate tel requirements
@@ -256,7 +256,7 @@ class UserController extends AbstractController
         if (isset($requestData['tel'])) {
             $user->setTel($requestData['tel']);
         }
-    
+
         $user->setUpdateAt(new DateTimeImmutable());
 
         $this->entityManager->persist($user);
@@ -268,24 +268,48 @@ class UserController extends AbstractController
         ]);
     }
 
-    #[Route('/user/{id}', name: 'app_delete_user', methods: ['DELETE'])]
-    public function deleteUser(int $id): JsonResponse
+    #[Route('/account-deactivation', name: 'app_delete_user', methods: ['DELETE'])]
+    public function deleteUser(Request $request): JsonResponse
     {
-        $userRepository = $this->entityManager->getRepository(User::class);
-        $user = $userRepository->find($id);
-
-        if (!$user) {
-            return $this->json([
-                'message' => 'User not found',
-            ], Response::HTTP_NOT_FOUND);
+        $dataMiddellware = $this->tokenVerifier->checkToken($request);
+        if (gettype($dataMiddellware) == 'boolean') {
+            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
         }
 
-        $this->entityManager->remove($user);
+        if (!$dataMiddellware) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        // if active = 'inactive' return error
+        if ($dataMiddellware->getActive() === 'inactive') {
+            return $this->json([
+                'error' => true,
+                'message' => 'Votre compte est déjà désactivé.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        $user = $dataMiddellware;
+
+        $user->setActive('inactive');
+        $user->setUpdateAt(new DateTimeImmutable());
+
+        //if user has artist profile, deactivate it
+        if ($user->getArtist()) {
+            $artist = $user->getArtist();
+            $artist->setActive('inactive');
+            $this->entityManager->persist($artist);
+        }
+
+        $this->entityManager->persist($user);
         $this->entityManager->flush();
 
         return $this->json([
-            'message' => 'User deleted successfully!',
-            'path' => 'src/Controller/UserController.php',
+            'success' => true,
+            'message' => 'Votre compte a été désactivé avec succès. Nous sommes désolés de vous voir partir.',
+          
         ]);
     }
 }

@@ -26,6 +26,9 @@ class Artist
     #[ORM\Column(length: 90)]
     private ?string $label = null;
 
+    #[ORM\Column(length: 90)]
+    private ?string $active = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
@@ -100,6 +103,17 @@ class Artist
         return $this;
     }
 
+    public function getActive(): ?string
+    {
+        return $this->active;
+    }
+
+    public function setActive(?string $active): static
+    {
+        $this->active = $active;
+
+        return $this;
+    }
     /**
      * @return Collection<int, Song>
      */
@@ -156,6 +170,19 @@ class Artist
 
         return $this;
     }
+    
+    public function getLabelHasArtist(): ?LabelHasArtist
+    {
+        return $this->LabelHasArtist;
+    }
+    
+    public function setLabelHasArtist(?LabelHasArtist $LabelHasArtist): static
+    {
+        $this->LabelHasArtist = $LabelHasArtist;
+        
+        return $this;
+    }
+
     public function artistSerializer()
     {
     
@@ -164,17 +191,5 @@ class Artist
             'label' => $this->getLabel(),
             'description' => $this->getDescription(),
         ];
-    }
-
-    public function getLabelHasArtist(): ?LabelHasArtist
-    {
-        return $this->LabelHasArtist;
-    }
-
-    public function setLabelHasArtist(?LabelHasArtist $LabelHasArtist): static
-    {
-        $this->LabelHasArtist = $LabelHasArtist;
-
-        return $this;
     }
 }
