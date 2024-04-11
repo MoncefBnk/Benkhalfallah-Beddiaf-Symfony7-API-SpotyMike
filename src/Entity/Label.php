@@ -87,4 +87,14 @@ class Label
 
         return $this;
     }
+    public function labelSerializer()
+    {
+
+        return [
+
+            'idLabel' => $this->getIdLabel(),
+            'labelName' => $this->getLabelName(),
+     
+        ];
+    }
 }

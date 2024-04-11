@@ -269,7 +269,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function userSerializer()
+    public function userSerializer(bool $children = false)
     {
         $dateBirthFormatted = $this->getDateBirth() ? $this->getDateBirth()->format('d-m-Y') : null;
 
@@ -282,7 +282,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             'dateBirth'=>$dateBirthFormatted,
             'createdAt' => $this->getCreateAt(),
             'updateAt' => $this->getUpdateAt(),
-            'artist' => $this->getArtist() ?  $this->getArtist()->artistSerializer() : [],
+            'artist' => $children ?  $this->getArtist()->artistSerializer() : [],
+        ];
+    }
+    public function userForArtistSerializer()
+    {
+        $dateBirthFormatted = $this->getDateBirth() ? $this->getDateBirth()->format('d-m-Y') : null;
+
+        return [
+            'firstname' => $this->getFirstname(),
+            'lastname' => $this->getLastname(),
+            'sexe' => $this->getSexe(),
+            'dateBirth'=>$dateBirthFormatted,
         ];
     }
 }

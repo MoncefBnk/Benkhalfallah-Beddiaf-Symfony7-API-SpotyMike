@@ -14,9 +14,6 @@ class LabelHasArtist
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 90)]
-    private ?string $idLabelHasArtist = null;
-
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private ?\DateTimeInterface $joinedAt = null;
 
@@ -34,18 +31,6 @@ class LabelHasArtist
     public function getId(): ?int
     {
         return $this->id;
-    }
-
-    public function getIdLabelHasArtist(): ?string
-    {
-        return $this->idLabelHasArtist;
-    }
-
-    public function setIdLabelHasArtist(string $idLabelHasArtist): static
-    {
-        $this->idLabelHasArtist = $idLabelHasArtist;
-
-        return $this;
     }
 
     public function getJoinedAt(): ?\DateTimeInterface

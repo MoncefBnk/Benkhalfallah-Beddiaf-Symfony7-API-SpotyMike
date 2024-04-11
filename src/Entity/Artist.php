@@ -23,8 +23,6 @@ class Artist
     #[ORM\Column(length: 90)]
     private ?string $fullname = null;
 
-    #[ORM\Column(length: 90)]
-    private ?string $label = null;
 
     #[ORM\Column(length: 90)]
     private ?string $active = null;
@@ -77,18 +75,6 @@ class Artist
     public function setFullname(string $fullname): static
     {
         $this->fullname = $fullname;
-
-        return $this;
-    }
-
-    public function getLabel(): ?string
-    {
-        return $this->label;
-    }
-
-    public function setLabel(string $label): static
-    {
-        $this->label = $label;
 
         return $this;
     }
@@ -173,17 +159,6 @@ class Artist
         return $this;
     }
     
-
-    public function artistSerializer()
-    {
-    
-        return [
-            'fullname' => $this->getFullname(),
-            'label' => $this->getLabel(),
-            'description' => $this->getDescription(),
-        ];
-    }
-
     /**
      * @return Collection<int, LabelHasArtist>
      */
@@ -212,5 +187,27 @@ class Artist
         }
 
         return $this;
+    }
+    public function artistSerializer()
+    {
+    
+        return [
+            'fullname' => $this->getFullname(),
+            'description' => $this->getDescription(),
+        ];
+    }
+
+    public function artistAllSerializer()
+    {
+        $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('d-m-Y') : null;
+    
+        return [
+            'firstname' => $this->getUserIdUser()->getFirstname(),
+            'lastname' => $this->getUserIdUser()->getLastname(),
+            'sexe' => $this->getUserIdUser()->getSexe(),
+            'dateBirth'=>$dateBirthFormatted,  
+            'Artist.CreatedAt' => $this->getUserIdUser()->getCreateAt(),
+            'description' => $this->getDescription(),
+        ];
     }
 }

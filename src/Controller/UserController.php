@@ -43,7 +43,7 @@ class UserController extends AbstractController
 
         return $this->json([
             'users' => $serializedUsers,
-            'message' => 'All songs retrieved successfully!',
+            'message' => 'All users retrieved successfully!',
             'path' => 'src/Controller/SongController.php',
         ]);
     }
