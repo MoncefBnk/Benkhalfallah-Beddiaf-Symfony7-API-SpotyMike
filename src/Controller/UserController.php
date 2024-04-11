@@ -283,16 +283,17 @@ class UserController extends AbstractController
             ], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-        if (!$dataMiddellware->getActive()) {
+        // if active = 'inactive' return error
+        if ($dataMiddellware->getActive() === 'inactive') {
             return $this->json([
                 'error' => true,
-                'message' => 'Le compte est déjà désactivé.',
+                'message' => 'Votre compte est déjà désactivé.',
             ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
         $user = $dataMiddellware;
 
-        $user->setActive(false);
+        $user->setActive('inactive');
         $user->setUpdateAt(new DateTimeImmutable());
 
         //if user has artist profile, deactivate it
