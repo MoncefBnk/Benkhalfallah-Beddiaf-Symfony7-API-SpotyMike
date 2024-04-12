@@ -149,7 +149,7 @@ class LoginController extends AbstractController
         if ($existingUser) {
             return $this->json([
                 'error' => true,
-                'message' => 'Cette email est déjà utilisée par un autre compte.',
+                'message' => 'Cette email est déjà utilisé par un autre compte.',
             ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         } // 409 Conflict
         $dateBirth = DateTimeImmutable::createFromFormat('d/m/Y', $requestData['dateBirth']);
@@ -157,7 +157,7 @@ class LoginController extends AbstractController
         if ($dateBirth === false) {           
             return $this->json([
                 'error' => true,
-                'message' => 'Le format de la date de naissance est invalide. le format attendu est JJ/MM/AAAA.',
+                'message' => 'Le format de la date de naissance est invalide. Le format attendu est JJ/MM/AAAA.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
 
@@ -167,7 +167,7 @@ class LoginController extends AbstractController
         if ($age < 12) {
             return $this->json([
                 'error' => true,
-                'message' => "l'utilisateur doit avoir au moins 12 ans.",
+                'message' => "L'utilisateur doit avoir au moins 12 ans.",
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         } // 406 Bad Request
 
@@ -217,7 +217,7 @@ class LoginController extends AbstractController
         if (!preg_match($passwordRequirements, $password)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et avoir 8 caractères minimum',
+                'message' => 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et avoir 8 caractères minimum.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
         // Validate email format
