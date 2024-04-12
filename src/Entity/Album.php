@@ -201,17 +201,16 @@ class Album
         if ($labelHasArtist) {
             $label = $labelHasArtist->getIdLabel()->getLabelName();
         }
-
+        $createdAt = $this->getCreateAt() ? $this->getCreateAt()->format('Y-m-d') : null;
         return [
-            'id' => $this->getId(),
+            'id' => strval($this->getId()),
             'nom' => $this->getNom(),
             'categ' => $this->getCateg(),
             'label' => $label,
             'cover' => $this->getCover(),
             'year' => $formatedYear,
-            'createdAt' => $this->getCreateAt(),
+            'createdAt' => $createdAt,
             'songs' => $songs,
-            'artist' => $artist ? $artist->artistSerializer() : [],
         ];
     }
 }
