@@ -296,7 +296,7 @@ class LoginController extends AbstractController
         if ($requestCount >= 3) {
             return $this->json([
                 'error' => true,
-                'message' => 'Trop de demande de réinitialisation de mot de passe ( 3 max ). Veuillez attendre avant de réessayer ( Dans '.$timeToExpireInMinutes.' min).',
+                'message' => 'Trop de demandes de réinitialisation de mot de passe ( 3 max ). Veuillez attendre avant de réessayer ( Dans '.$timeToExpireInMinutes.' min).',
             ], JsonResponse::HTTP_TOO_MANY_REQUESTS); // 429 Too Many Requests
         }
 
