@@ -53,7 +53,7 @@ class ArtistController extends AbstractController
         $user = $dataMiddellware;
 
     // if fullname is empty return error
-        if (empty($fullname)) {
+        if ($fullname ===' ') {
             return $this->json([
                 'error' => true,
                 'message' => 'Le nom d\'artiste est obligatoire pour cette requête.',
@@ -182,7 +182,7 @@ class ArtistController extends AbstractController
                 if (!empty($invalidData)) {
                     return $this->json([
                         'error' => true,
-                        'message' => 'Les parametres fournies sont invalides ou incomplètes. Veuillez verifier les données soumises.',
+                        'message' => 'Les paramètres fournis sont invalides. Veuillez vérifier les données soumises.',
                     ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
                 }
                 $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
@@ -190,7 +190,7 @@ class ArtistController extends AbstractController
                 if ($existingArtistWithFullname) {
                     return $this->json([
                         'error' => true,
-                        'message' => 'Ce nom d\'artiste est déjà utilisé. Veuillez en choisir un autre.',
+                        'message' => 'Le nom d\'artiste est déjà utilisé. Veuillez choisir un autre nom.',
                     ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
                 }
             }
@@ -246,7 +246,7 @@ class ArtistController extends AbstractController
             return $this->json([
                 'success' => true,
                 'message' => 'Les informations de l\'artiste ont été mises à jour avec succès.',
-                'id_artist' => strval($artist->getId()),
+                
             ], JsonResponse::HTTP_CREATED);
         } else {
 
@@ -488,27 +488,27 @@ class ArtistController extends AbstractController
         if ($user->getArtist() === null) {
             return $this->json([
                 'error' => true,
-                'message' => 'Compte Artist non trouvé. Verifiez les informations fournies et réessayez.',
+                'message' => 'Compte artiste non trouvé. Vérifiez les informations fournies et réessayez.',
             ], JsonResponse::HTTP_NOT_FOUND);
         }
 
         //if already inactive return error
-        if ($user->getArtist()->getActive() === 'inactive') {
+        if ($user->getArtist()->getActive() === 'Inactive') {
             return $this->json([
                 'error' => true,
-                'message' => 'Ce compte artiste est deja désactivé',
+                'message' => 'Ce compte artiste est déja désactivé.',
             ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
         $artist = $user->getArtist();
 
-        $artist->setActive('inactive');
+        $artist->setActive('Inactive');
         $this->entityManager->persist($artist);
         $this->entityManager->flush();
 
         return $this->json([
             'error' => false,
-            'message' => 'Le compte a été désactivé avec succès',
+            'message' => 'Le compte a été désactivé avec succès.',
 
         ]);
     }
