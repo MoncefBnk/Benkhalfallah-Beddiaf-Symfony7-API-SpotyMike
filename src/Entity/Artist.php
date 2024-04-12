@@ -27,6 +27,13 @@ class Artist
     #[ORM\Column(length: 90)]
     private ?string $active = null;
 
+    //createdAt
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    private ?\DateTimeInterface $createdAt = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    private ?\DateTimeInterface $updatedAt = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
@@ -102,6 +109,31 @@ class Artist
 
         return $this;
     }
+    //getCreatedAt
+    public function getCreatedAt(): ?\DateTimeInterface
+    {
+        return $this->createdAt;
+    }
+    //setCreatedAt
+    public function setCreatedAt(\DateTimeInterface $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+    //getUpdatedAt
+    public function getUpdatedAt(): ?\DateTimeInterface
+    {
+        return $this->updatedAt;
+    }
+    //setUpdatedAt
+    public function setUpdatedAt(\DateTimeInterface $updatedAt): static
+    {
+        $this->updatedAt = $updatedAt;
+
+        return $this;
+    }
+    
     /**
      * @return Collection<int, Song>
      */
@@ -201,19 +233,20 @@ class Artist
     {
         $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('Y-m-d') : null;
     
-        $label = $this->labelHasArtist->filter(function($labelHasArtist) {
-            return $labelHasArtist->getLeftAt() === null;
-        })->map(function($labelHasArtist) {
-            return $labelHasArtist->getIdLabel()->getLabelName();
-        })->first(); 
+        // $label = $this->labelHasArtist->filter(function($labelHasArtist) {
+        //     return $labelHasArtist->getLeftAt() === null;
+        // })->map(function($labelHasArtist) {
+        //     return $labelHasArtist->getIdLabel()->getLabelName();
+        // })->first(); 
 
+        $createdAt = $this->getCreatedAt() ? $this->getCreatedAt()->format('Y-m-d') : null;
         $sexe = $this->getUserIdUser()->getSexe() === '1' ? 'Homme' : 'Femme';
         return [
             'firstname' => $this->getUserIdUser()->getFirstname(),
             'lastname' => $this->getUserIdUser()->getLastname(),
             'sexe' => $sexe,
             'dateBirth'=>$dateBirthFormatted,  
-            'Artist.CreatedAt' => $this->getUserIdUser()->getCreateAt(),    
+            'Artist.CreatedAt' => $createdAt,    
             'albums' => $this->albums->map(function($album) {
                 return $album->albumSerializer();
             }),

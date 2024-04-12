@@ -173,12 +173,12 @@ class Song
     }
     public function songSerializer()
     {
-
+        $createdAt = $this->getCreateAt() ? $this->getCreateAt()->format('Y-m-d') : null;
         return [
-            'id' => $this->getId(),
+            'id' => strval($this->getId()),
             'title' => $this->getTitle(),
             'cover' => $this->getCover(),
-            'createdAt' => $this->getCreateAt(),
+            'createdAt' => $createdAt,
         ];
     }
 }

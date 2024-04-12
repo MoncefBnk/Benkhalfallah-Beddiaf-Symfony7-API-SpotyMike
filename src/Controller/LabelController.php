@@ -84,7 +84,7 @@ class LabelController extends AbstractController
         $this->entityManager->flush();
 
         return $this->json([
-            'label' => $label->toArray(),
+            'label' => $label->labelSerializer(),
             'message' => 'Label updated successfully!',
             'path' => 'src/Controller/LabelController.php',
         ]);

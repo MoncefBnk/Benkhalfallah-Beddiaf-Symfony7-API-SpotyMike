@@ -72,6 +72,17 @@ class UserController extends AbstractController
         }
 
         $invalidData = [];
+        if(isset($requestData['firstname']) &&
+            empty($requestData['firstname']) || //firstname empty
+            strlen($requestData['firstname']) > 90
+
+       
+         ) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Erreur de validation des données.',
+            ], JsonResponse:: HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         if (isset($requestData['firstname'])) {
             $firstname = $requestData['firstname'];
@@ -102,7 +113,7 @@ class UserController extends AbstractController
             if ($sexe != 0 && $sexe != 1) {
                 return $this->json([
                     'error' => true,
-                    'message' => 'La valeur du champ sexe est invalide. Les valeurs autorisées sont 0 pour Femme et 1 pour Homme ',
+                    'message' => 'La valeur du champ sexe est invalide. Les valeurs autorisées sont 0 pour Femme, 1 pour Homme.',
                 ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
             }
         }
@@ -122,7 +133,7 @@ class UserController extends AbstractController
             if ($existingUser) {
                 return $this->json([
                     'error' => true,
-                    'message' => 'Conflit de données. Le numéro de téléphone est déjà utilisé par un autre utilisateur',
+                    'message' => 'Conflit de données. Le numéro de téléphone est déjà utilisé par un autre utilisateur.',
                 ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
             }
         }
@@ -153,7 +164,7 @@ class UserController extends AbstractController
         $this->entityManager->flush();
 
         return $this->json([
-            'error' => 'false',
+            'error' => false,
             'message' => 'Votre inscription a été prise en compte',
         ]);
     }
@@ -174,22 +185,22 @@ class UserController extends AbstractController
         }
 
         // if active = 'inactive' return error
-        if ($dataMiddellware->getActive() === 'inactive') {
+        if ($dataMiddellware->getActive() === 'Inactive') {
             return $this->json([
                 'error' => true,
-                'message' => 'Votre compte est déjà désactivé.',
+                'message' => 'Le compte est déjà désactivé.',
             ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
         $user = $dataMiddellware;
 
-        $user->setActive('inactive');
+        $user->setActive('Inactive');
         $user->setUpdateAt(new DateTimeImmutable());
 
         //if user has artist profile, deactivate it
         if ($user->getArtist()) {
             $artist = $user->getArtist();
-            $artist->setActive('inactive');
+            $artist->setActive('Inactive');
             $this->entityManager->persist($artist);
         }
 
@@ -203,10 +214,8 @@ class UserController extends AbstractController
         ]);
     }
 }
-//ajouter le createdAt et updatedAt pour artist, 
-//ajouter un album avec le label
-//ajouter des chanson
-//recuperer les albums d'un artist 
+
 //verifier les données
 //tester toutes les routes
+//mettre les guards pour la restriction sur le login
 //definir le token de reinitialisation du mdp 

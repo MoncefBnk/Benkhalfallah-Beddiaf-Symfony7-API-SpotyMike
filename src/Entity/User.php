@@ -17,9 +17,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $id = null;
 
-    // #[ORM\Id]
-    #[ORM\Column(length: 90)]
-    private ?string $idUser = null;
 
     #[ORM\Column(length: 55)]
     private ?string $firstname = null;
@@ -61,17 +58,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->id;
     }
 
-    public function getIdUser(): ?string
-    {
-        return $this->idUser;
-    }
-
-    public function setIdUser(string $idUser): static
-    {
-        $this->idUser = $idUser;
-
-        return $this;
-    }
 
     public function getLastname(): ?string
     {
@@ -287,7 +273,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             'dateBirth'=>$dateBirthFormatted,
             'createdAt' => $this->getCreateAt(),
             'updateAt' => $this->getUpdateAt(),
-            'artist' => $children ?  $this->getArtist()->artistSerializer() : [], // a enlever
         ];
     }
     public function userForArtistSerializer()

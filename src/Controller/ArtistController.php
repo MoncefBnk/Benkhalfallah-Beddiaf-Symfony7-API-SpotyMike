@@ -12,6 +12,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Artist;
 use App\Entity\Label;
 use App\Entity\LabelHasArtist;
+use DateTimeImmutable;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 
@@ -28,22 +29,9 @@ class ArtistController extends AbstractController
         $this->repository = $entityManager->getRepository(Artist::class);
     }
 
-    #[Route('/artist', name: 'app_get_artists', methods: ['GET'])]
-    public function getAllArtists(): JsonResponse
-    {
-        $artists = $this->entityManager->getRepository(Artist::class)->findAll();
 
-        $serializedArtists = [];
-        foreach ($artists as $artist) {
-            $serializedArtists[] = $artist->artistAllSerializer();
-        }
-
-        return $this->json([
-            'artists' => $serializedArtists,
-            'message' => 'All artists retrieved successfully!',
-            'path' => 'src/Controller/ArtistController.php',
-        ]);
-    }
+    //add authentification middleware
+    
 
 
     //get artist by fullname if the fullname of the user authenticated is an artist and has a matching fullname
@@ -64,24 +52,85 @@ class ArtistController extends AbstractController
 
         $user = $dataMiddellware;
 
-        $artist = $this->repository->findOneBy(['fullname' => $fullname]);
-
-        if ((!$artist || $user->getArtist() === null || $user->getArtist()->getFullname() !== $fullname) && $artist->getActive() !== 'active') {
+    // if fullname is empty return error
+        if (empty($fullname)) {
             return $this->json([
-                'message' => 'Artist not found',
-            ], JsonResponse::HTTP_NOT_FOUND);
+                'error' => true,
+                'message' => 'Le nom d\'artiste est obligatoire pour cette requête.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
-        $serializedArtists = $artist->artistAllSerializer();
+        //full name validation
+        if (!preg_match('/^[a-zA-Z\s]+$/', $fullname)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le format du nom d\'artiste fourni est invalide.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
+        //if artist is user has artist && artist fullname is the same as the one in the url TOOOO DOOOOO !!!!!!!!!!!!!!!!
+        if ($user->getArtist() !== null && $user->getArtist()->getFullname() === $fullname) {
+            $artist = $user->getArtist();
+            $serializedArtists = $artist->artistAllSerializer();
+            return $this->json([
+                'error' => false,
+                'artist' => $serializedArtists,
+            ]);
+        } 
+        else {
+            $artist = $this->repository->findOneBy(['fullname' => $fullname]);
+
+            if (!$artist) {
+                return $this->json([
+                    'error' => true,
+                    'message' => 'Aucun artiste trouvé correspondant au nom fourni.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
+
+            $serializedArtists = $artist->artistAllSerializer();
+
+
+
+            return $this->json([
+                'error' => false,
+                'artist' => $serializedArtists,
+            ]);
+        }
+    }
+
+    #[Route('/artist', name: 'app_get_artists', methods: ['GET'])]
+    public function getAllArtists(Request $request): JsonResponse
+    {
+        $dataMiddellware = $this->tokenVerifier->checkToken($request);
+        if (gettype($dataMiddellware) == 'boolean') {
+            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
+        }
+
+        if (!$dataMiddellware) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Authentication required. You must be logged in to perform this action.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        // Your existing code to fetch artists
+        $artists = $this->entityManager->getRepository(Artist::class)->findAll();
+
+        $serializedArtists = [];
+        foreach ($artists as $artist) {
+            $serializedArtists[] = $artist->artistAllSerializer();
+        }
+
+        //i want to add pagination where i display 5 artists per page and i can navigate to the next page using an attribute in the body of the get request which refers to the index of the page
 
 
         return $this->json([
             'error' => false,
-            'artist' => $serializedArtists,
+            'artists' => $serializedArtists,
+            'message' => 'Information des artistes récupérées avec succès.',
+            // 'pagination' =>  $paginatedArtists,
         ]);
     }
-
 
 
 
@@ -141,12 +190,12 @@ class ArtistController extends AbstractController
                 if ($existingArtistWithFullname) {
                     return $this->json([
                         'error' => true,
-                        'message' => 'Le nom d\'artiste est déjà utilisé. Veuillez choisir un autre nom.',
+                        'message' => 'Ce nom d\'artiste est déjà utilisé. Veuillez en choisir un autre.',
                     ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
                 }
             }
 
-            if (isset($requestData['idLabel']) && strlen($requestData['idLabel']) > 60) {
+            if (isset($requestData['label']) && strlen($requestData['label']) > 60) {
                 $invalidIdLabel = true;
                 if ($invalidIdLabel) {
                     return $this->json([
@@ -161,15 +210,15 @@ class ArtistController extends AbstractController
             if (isset($requestData['fullname'])) {
                 $artist->setFullname($requestData['fullname']);
             }
-            if (isset($requestData['idLabel'])){
-                $labelId = $requestData['idLabel'];
+            if (isset($requestData['label'])) {
+                $labelId = $requestData['label'];
                 $label = $this->entityManager->getRepository(Label::class)->find($labelId);
-                
+
 
                 if (!$label) {
                     return $this->json([
                         'error' => true,
-                        'message' => 'Invalid label provided',
+                        'message' => 'Le format de l\'id du label est invalide.',
                     ], JsonResponse::HTTP_BAD_REQUEST);
                 }
                 $artist = $user->getArtist();
@@ -179,6 +228,7 @@ class ArtistController extends AbstractController
                     $this->entityManager->persist($oldlabelHasArtist);
                     $this->entityManager->flush();
                 }
+                $artist->setUpdatedAt(new DateTimeImmutable());
                 $labelHasArtist = new LabelHasArtist();
                 $labelHasArtist->setIdArtist($artist);
                 $labelHasArtist->setIdLabel($label);
@@ -196,10 +246,11 @@ class ArtistController extends AbstractController
             return $this->json([
                 'success' => true,
                 'message' => 'Les informations de l\'artiste ont été mises à jour avec succès.',
+                'id_artist' => strval($artist->getId()),
             ], JsonResponse::HTTP_CREATED);
         } else {
 
-            $requiredFields = ['fullname', 'idLabel'];
+            $requiredFields = ['fullname', 'label'];
 
             //if one of the requeried fields is missing error field 
             $missingFields = [];
@@ -230,7 +281,7 @@ class ArtistController extends AbstractController
                 }
             }
 
-            if (isset($requestData['idLabel']) && strlen($requestData['idLabel']) > 60) {
+            if (isset($requestData['label']) && strlen($requestData['label']) > 60) {
                 $invalidIdLabel = true;
             }
 
@@ -253,7 +304,7 @@ class ArtistController extends AbstractController
             if ($existingArtistWithFullname) {
                 return $this->json([
                     'error' => true,
-                    'message' => 'Un compte utilisant ce nom d\'artiste est déjà enregistré',
+                    'message' => 'Ce nom d\'artiste est déjà pris. Veuillez en choisir un autre.',
                 ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
             }
 
@@ -271,7 +322,7 @@ class ArtistController extends AbstractController
                 ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
             }
 
-            $labelId = $requestData['idLabel'];
+            $labelId = $requestData['label'];
 
             $label = $this->entityManager->getRepository(Label::class)->find($labelId);
 
@@ -287,6 +338,8 @@ class ArtistController extends AbstractController
             $artist->setFullname($requestData['fullname']);
             $artist->setDescription($requestData['description'] ?? null);
             $artist->setActive('active');
+            $artist->setCreatedAt(new DateTimeImmutable());
+            $artist->setUpdatedAt(new DateTimeImmutable());
             //with the label id we can create a new labelHasArtist
             $labelHasArtist = new LabelHasArtist();
             $labelHasArtist->setIdArtist($artist);
@@ -302,6 +355,8 @@ class ArtistController extends AbstractController
             return $this->json([
                 'success' => true,
                 'message' => 'Votre compte artiste a été créé avec succès. Bienvenue dans notre communauté d\'artistes !',
+                'id_artist' => strval($artist->getId()),
+
             ], JsonResponse::HTTP_CREATED); // 201 Created
         }
     }

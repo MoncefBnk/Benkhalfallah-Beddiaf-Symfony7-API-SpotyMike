@@ -17,48 +17,67 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
 
 
+
 class LoginController extends AbstractController
 {
 
     private $entityManager;
     private $repository;
 
+
     public function __construct(EntityManagerInterface $entityManager){
         $this->entityManager =  $entityManager;
         $this->repository = $entityManager->getRepository(User::class);
+
     }
 
     #[Route('/', name: 'app_index', methods: ['GET'])]
-    public function index(Request $request): Response
+    public function index(): Response
     {
         
-        // Récupérer le contenu de index.html
-        $content = file_get_contents(__DIR__ . '/../../public/index.php');
+        // Récupérer le contenu de index.html if found, else retrun 404
+        if (!file_exists(__DIR__ . '/../../public/index.html')) {
+            //retourne http 404 si index.html n'existe pas
+            return new Response('404 Not Found', Response::HTTP_NOT_FOUND);
+        
+            
+        } 
+        else{
+        $content = file_get_contents(__DIR__ . '/../../public/index.html');
 
         // Retourner une réponse avec le contenu de index.html
         return new Response($content);
+        }
     }
     
     #[Route('/login', name: 'app_login_post', methods: ['POST'])]
     public function login(Request $request, JWTTokenManagerInterface $JWTManager, UserPasswordHasherInterface $passwordHash): JsonResponse
     {
-        $email = $request->request->get('email');
-        $password = $request->request->get('password');
+        $email = $request->request->get('Email');
+        $password = $request->request->get('Password');
 
+        if (empty($email) || empty($password)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Email/password manquants.'
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
         // Validate email format
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Le format de l\'email est invalide',
+                'message' => 'Le format de l\'email est invalide.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
+//check if account actif
+        
 
         // Validate password requirements
         $passwordRequirements = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/';
         if (!preg_match($passwordRequirements, $password)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et avoir 8 caractères minimum',
+                'message' => 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et avoir 8 caractères minimum.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
 
@@ -70,10 +89,10 @@ class LoginController extends AbstractController
             ], JsonResponse::HTTP_UNAUTHORIZED); // 401 Unauthorized
         }
 
-        if ($user->getActive() === 'Inactif') {
+        if ($user->getActive() !== 'Actif') {
             return $this->json([
                 'error' => true,
-                'message' => 'Votre compte est inactif. Veuillez contacter le support pour plus d\'informations.',
+                'message' => 'Le compte n\'est plus actif ou est suspendu.',
             ], JsonResponse::HTTP_FORBIDDEN); // 403 Forbidden
         }
 
@@ -95,24 +114,18 @@ class LoginController extends AbstractController
             $requestData = json_decode($request->getContent(), true);
         }
 
-        $requiredFields = ['firstname', 'lastname', 'email', 'encrypte', 'dateBirth'];
+        $requiredFields = ['firstname', 'lastname', 'email', 'password', 'dateBirth'];
 
         foreach ($requiredFields as $field) {
             if (!isset($requestData[$field])) {
                 return $this->json([
                     'error' => true,
-                    'message' => 'Des champs obligatoires sont manquants',
+                    'message' => 'Des champs obligatoires sont manquants.',
                 ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
             }
         }
 
-        $existingUserWithIdUser = $this->repository->findOneBy(['idUser' => $requestData['idUser']]);
-        if ($existingUserWithIdUser) {
-            return $this->json([
-                'error' => true,
-                'message' => 'Un compte utilisant cette IdUser est déjà enregistré',
-            ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
-        } // 409 Conflict
+      
 
         $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
         if ($existingUser) {
@@ -126,7 +139,7 @@ class LoginController extends AbstractController
         if ($dateBirth === false) {           
             return $this->json([
                 'error' => true,
-                'message' => 'Le format de la date de naissance est invalide. le format attendu est JJ/MM/AAAA',
+                'message' => 'Le format de la date de naissance est invalide. le format attendu est JJ/MM/AAAA.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
 
@@ -136,15 +149,12 @@ class LoginController extends AbstractController
         if ($age < 12) {
             return $this->json([
                 'error' => true,
-                'message' => "l'utilisateur doit avoir au moins 12 ans",
+                'message' => "l'utilisateur doit avoir au moins 12 ans.",
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         } // 406 Bad Request
 
         $invalidData = [];
 
-        if (isset($requestData['idUser']) && strlen($requestData['idUser']) > 90) {
-            $invalidData[] = 'idUser';
-        }
 
         if (isset($requestData['firstname']) && strlen($requestData['firstname']) > 55) {
             $invalidData[] = 'firstname';
@@ -157,8 +167,8 @@ class LoginController extends AbstractController
         if (isset($requestData['email']) && strlen($requestData['email']) > 80) {
             $invalidData[] = 'email';
         }
-        if (isset($requestData['encrypt']) && strlen($requestData['encrypt']) > 30) {
-            $invalidData[] = 'encrypt';
+        if (isset($requestData['password']) && strlen($requestData['password']) > 30) {
+            $invalidData[] = 'password';
         }
 
         if (isset($requestData['tel']) && strlen($requestData['tel']) > 15) {
@@ -172,15 +182,15 @@ class LoginController extends AbstractController
             ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         }
 
-        $password = $requestData['encrypte'] ?? null;
+        $password = $requestData['password'] ?? null;
         $email = $requestData['email'] ?? null;
         $tel = $requestData['tel'] ?? null;
 
         //validate tel requirements 
-        if (!preg_match('/^06[0-9]{8}$/', $tel)) {
+        if (!preg_match('/^0[6-7][0-9]{8}$/', $tel)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Le format du numéro de téléphone est invalide',
+                'message' => 'Le format du numéro de téléphone est invalide.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
 
@@ -196,14 +206,20 @@ class LoginController extends AbstractController
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Le format de l\'email est invalide',
+                'message' => 'Le format de l\'email est invalide.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
         
+        //if sexe isn't 0 or 1 return error
+        if ($requestData['sexe'] != 0 && $requestData['sexe'] != 1) {
+            return $this->json([
+                'error' => true,
+                'message' => 'La valeur du champ sexe est invalide. Les valeurs autorisées sont 0 pour Femme, 1 pour Homme.',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
         $user = new User();
         $hash = $passwordHash->hashPassword($user, $password);
-        $user->setIdUser($requestData['idUser'] ?? null)
-            ->setFirstname($requestData['firstname'] ?? null)
+        $user->setFirstname($requestData['firstname'] ?? null)
             ->setLastname($requestData['lastname'] ?? null)
             ->setEmail($requestData['email'] ?? null)
             ->setSexe($requestData['sexe'] ?? null)
@@ -239,14 +255,14 @@ class LoginController extends AbstractController
         if (empty($email)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Email manquant. Veuillez fournir votre email pour la récupération du mot de passe',
+                'message' => 'Email manquant. Veuillez fournir votre email pour la récupération du mot de passe.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Le format de l\'email est invalide. Veuillez entrer un email valide',
+                'message' => 'Le format de l\'email est invalide. Veuillez entrer un email valide.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
 
