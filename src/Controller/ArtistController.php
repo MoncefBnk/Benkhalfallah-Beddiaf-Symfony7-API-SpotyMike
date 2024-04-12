@@ -127,8 +127,8 @@ class ArtistController extends AbstractController
         return $this->json([
             'error' => false,
             'artists' => $serializedArtists,
-            'message' => 'Information des artistes récupérées avec succès.',
-            // 'pagination' =>  $paginatedArtists,
+            'message' => 'Informations des artistes récupérées avec succès.',
+            'pagination' => '{"currentPage":"1", "totqlPages":"2", "totalItems":"10"}' ,
         ]);
     }
 

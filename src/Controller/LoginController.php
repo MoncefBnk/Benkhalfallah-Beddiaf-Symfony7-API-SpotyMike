@@ -291,8 +291,10 @@ class LoginController extends AbstractController
         $cacheKey = 'reset_password_' . urlencode($email);
         $cacheItem = $cache->getItem($cacheKey);
         $requestCount = $cacheItem->get() ?? 0;
-        $timeToExpire = 30;
+        $timeToExpire = 300; 
         $timeToExpireInMinutes = $timeToExpire / 60;
+        //i want to get the time reamining in 
+
         if ($requestCount >= 3) {
             return $this->json([
                 'error' => true,
@@ -301,7 +303,7 @@ class LoginController extends AbstractController
         }
 
         $cacheItem->set($requestCount + 1);
-        $cacheItem->expiresAfter( $timeToExpire); // 20 seconds
+        $cacheItem->expiresAfter( $timeToExpire); 
         $cache->save($cacheItem);
 
         $user = $this->repository->findOneBy(['email' => $email]);

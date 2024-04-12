@@ -74,7 +74,7 @@ class UserController extends AbstractController
         $invalidData = [];
         if(isset($requestData['firstname']) &&
             empty($requestData['firstname']) || //firstname empty
-            strlen($requestData['firstname']) > 90
+            isset($requestData['firstname']) &&strlen($requestData['firstname']) > 90
 
        
          ) {
@@ -195,8 +195,6 @@ class UserController extends AbstractController
         $user = $dataMiddellware;
 
         $user->setActive('Inactive');
-        $artist = $user->getArtist();
-        $artist->setActive('Inactive');
         $user->setUpdateAt(new DateTimeImmutable());
 
         //if user has artist profile, deactivate it
