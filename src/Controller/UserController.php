@@ -165,7 +165,7 @@ class UserController extends AbstractController
 
         return $this->json([
             'error' => false,
-            'message' => 'Votre inscription a été prise en compte',
+            'message' => 'Votre inscription a bien été prise en compte',
         ]);
     }
 
