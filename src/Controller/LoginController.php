@@ -80,6 +80,24 @@ class LoginController extends AbstractController
                 'message' => 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et avoir 8 caractères minimum.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
+        $cache = new FilesystemAdapter();
+        $cacheKey = 'login_' . urlencode($email);
+        $cacheItem = $cache->getItem($cacheKey);
+        $requestCount = $cacheItem->get() ?? 0;
+
+        $timeToExpire = 30;
+        $timeToExpireInMinutes = $timeToExpire / 60;
+        if ($requestCount >= 5) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Trop de tentative de connexion (5max). Veuillez réessayer ultérieurement - '.$timeToExpireInMinutes.' min d\'attente.',
+            ], JsonResponse::HTTP_TOO_MANY_REQUESTS); // 429 Too Many Requests
+        }
+
+        $cacheItem->set($requestCount + 1);
+        $cacheItem->expiresAfter(5); // 5 seconds
+        $cache->save($cacheItem);
+
 
         $user = $this->repository->findOneBy(["email" => $email]);
 
@@ -271,16 +289,17 @@ class LoginController extends AbstractController
         $cacheKey = 'reset_password_' . urlencode($email);
         $cacheItem = $cache->getItem($cacheKey);
         $requestCount = $cacheItem->get() ?? 0;
-
+        $timeToExpire = 30;
+        $timeToExpireInMinutes = $timeToExpire / 60;
         if ($requestCount >= 3) {
             return $this->json([
                 'error' => true,
-                'message' => 'Trop de demande de réinitialisation de mot de passe ( 3 max ). Veuillez attendre avant de réessayer ( Dans 5 min).',
+                'message' => 'Trop de demande de réinitialisation de mot de passe ( 3 max ). Veuillez attendre avant de réessayer ( Dans '.$timeToExpireInMinutes.' min).',
             ], JsonResponse::HTTP_TOO_MANY_REQUESTS); // 429 Too Many Requests
         }
 
         $cacheItem->set($requestCount + 1);
-        $cacheItem->expiresAfter(5); // 20 seconds
+        $cacheItem->expiresAfter( $timeToExpire); // 20 seconds
         $cache->save($cacheItem);
 
         $user = $this->repository->findOneBy(['email' => $email]);
