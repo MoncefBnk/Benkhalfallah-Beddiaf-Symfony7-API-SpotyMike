@@ -213,9 +213,10 @@ class Artist
             'lastname' => $this->getUserIdUser()->getLastname(),
             'sexe' => $sexe,
             'dateBirth'=>$dateBirthFormatted,  
-            'Artist.CreatedAt' => $this->getUserIdUser()->getCreateAt(),
-            'description' => $this->getDescription(),        
-            'label' => $label,
+            'Artist.CreatedAt' => $this->getUserIdUser()->getCreateAt(),    
+            'albums' => $this->albums->map(function($album) {
+                return $album->albumSerializer();
+            }),
         ];
     }
 }

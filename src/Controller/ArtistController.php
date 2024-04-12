@@ -77,9 +77,8 @@ class ArtistController extends AbstractController
 
 
         return $this->json([
+            'error' => false,
             'artist' => $serializedArtists,
-            'message' => 'Artist retrieved successfully!',
-            'path' => 'src/Controller/ArtistController.php',
         ]);
     }
 

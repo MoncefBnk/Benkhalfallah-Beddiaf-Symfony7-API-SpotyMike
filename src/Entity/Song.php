@@ -177,7 +177,6 @@ class Song
         return [
             'id' => $this->getId(),
             'title' => $this->getTitle(),
-            'stream' => $this->getStream(),
             'cover' => $this->getCover(),
             'createdAt' => $this->getCreateAt(),
         ];

@@ -211,7 +211,6 @@ class Album
             'year' => $formatedYear,
             'createdAt' => $this->getCreateAt(),
             'songs' => $songs,
-            'artist' => $artist ? $artist->artistSerializer() : [],
         ];
     }
 }
