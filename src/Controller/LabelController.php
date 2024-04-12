@@ -115,7 +115,7 @@ class LabelController extends AbstractController
 
         $serializedLabels = [];
         foreach ($labels as $label) {
-            $serializedLabels[] = $label->toArray();
+            $serializedLabels[] = $label->labelSerializer();
         }
 
         return $this->json([
@@ -135,7 +135,7 @@ class LabelController extends AbstractController
         }
 
         return $this->json([
-            'label' => $label->toArray(),
+            'label' => $label->labelSerializer(),
             'message' => 'Label retrieved successfully!',
             'path' => 'src/Controller/LabelController.php',
         ]);

@@ -271,28 +271,34 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function userSerializer(bool $children = false)
     {
-        $dateBirthFormatted = $this->getDateBirth() ? $this->getDateBirth()->format('d-m-Y') : null;
+        $dateBirthFormatted = $this->getDateBirth() ? $this->getDateBirth()->format('Y-m-d') : null;
 
+        //check if user has artist
+        if ($this->getArtist() !== null) {
+            $children = true;
+        } 
+        $sexe = $this->getSexe() === '1' ? 'Homme' : 'Femme';
         return [
             'firstname' => $this->getFirstname(),
             'lastname' => $this->getLastname(),
             'email' => $this->getEmail(),
             'tel' => $this->getTel(),
-            'sexe' => $this->getSexe(),
+            'sexe' =>  $sexe,
             'dateBirth'=>$dateBirthFormatted,
             'createdAt' => $this->getCreateAt(),
             'updateAt' => $this->getUpdateAt(),
-            'artist' => $children ?  $this->getArtist()->artistSerializer() : [],
+            'artist' => $children ?  $this->getArtist()->artistSerializer() : [], // a enlever
         ];
     }
     public function userForArtistSerializer()
     {
-        $dateBirthFormatted = $this->getDateBirth() ? $this->getDateBirth()->format('d-m-Y') : null;
+        $dateBirthFormatted = $this->getDateBirth() ? $this->getDateBirth()->format('Y-m-d') : null;
+        $sexe = $this->getSexe() === '1' ? 'Homme' : 'Femme';
 
         return [
             'firstname' => $this->getFirstname(),
             'lastname' => $this->getLastname(),
-            'sexe' => $this->getSexe(),
+            'sexe' => $sexe,
             'dateBirth'=>$dateBirthFormatted,
         ];
     }

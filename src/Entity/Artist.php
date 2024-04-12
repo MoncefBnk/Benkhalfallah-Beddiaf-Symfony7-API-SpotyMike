@@ -199,16 +199,23 @@ class Artist
 
     public function artistAllSerializer()
     {
-        $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('d-m-Y') : null;
+        $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('Y-m-d') : null;
     
+        $label = $this->labelHasArtist->filter(function($labelHasArtist) {
+            return $labelHasArtist->getLeftAt() === null;
+        })->map(function($labelHasArtist) {
+            return $labelHasArtist->getIdLabel()->getLabelName();
+        })->first(); 
+
+        $sexe = $this->getUserIdUser()->getSexe() === '1' ? 'Homme' : 'Femme';
         return [
             'firstname' => $this->getUserIdUser()->getFirstname(),
             'lastname' => $this->getUserIdUser()->getLastname(),
-            'sexe' => $this->getUserIdUser()->getSexe(),
+            'sexe' => $sexe,
             'dateBirth'=>$dateBirthFormatted,  
             'Artist.CreatedAt' => $this->getUserIdUser()->getCreateAt(),
-            'description' => $this->getDescription(),
-            'label' => $this->labelHasArtist->map(fn($label) => $label->getIdLabel()->labelSerializer()),
+            'description' => $this->getDescription(),        
+            'label' => $label,
         ];
     }
 }

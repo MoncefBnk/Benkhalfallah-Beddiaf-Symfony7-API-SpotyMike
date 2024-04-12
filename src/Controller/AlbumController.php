@@ -93,14 +93,21 @@ class AlbumController extends AbstractController
                 'donnees' => $donneesInvalides,
             ], JsonResponse::HTTP_CONFLICT);
         }
+        //get the label from artist id
+        
 
         $album = new Album();
         $album->setIdAlbum($requestData['idAlbum']);
         $album->setNom($requestData['nom']);
         $album->setCateg($requestData['categ']);
         $album->setCover($requestData['cover'] ?? null);
-        $album->setYear($requestData['year'] ?? null);
 
+        $year = DateTimeImmutable::createFromFormat('d-m-Y', $requestData['year']);
+        if (!$year) {
+            return $this->json(['message' => 'Date de sortie invalide!'], Response::HTTP_BAD_REQUEST);
+        }        
+
+        $album->setYear($year);
         $album->setCreateAt(new DateTimeImmutable());
         $album->setUpdateAt(new DateTimeImmutable());
 
