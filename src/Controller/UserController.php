@@ -195,6 +195,8 @@ class UserController extends AbstractController
         $user = $dataMiddellware;
 
         $user->setActive('Inactive');
+        $artist = $user->getArtist();
+        $artist->setActive('Inactive');
         $user->setUpdateAt(new DateTimeImmutable());
 
         //if user has artist profile, deactivate it
@@ -215,7 +217,5 @@ class UserController extends AbstractController
     }
 }
 
-//verifier les données
-//tester toutes les routes
-//mettre les guards pour la restriction sur le login
+//pagination
 //definir le token de reinitialisation du mdp 
