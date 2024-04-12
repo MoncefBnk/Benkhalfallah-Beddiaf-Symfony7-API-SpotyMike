@@ -23,8 +23,6 @@ class Artist
     #[ORM\Column(length: 90)]
     private ?string $fullname = null;
 
-    #[ORM\Column(length: 90)]
-    private ?string $label = null;
 
     #[ORM\Column(length: 90)]
     private ?string $active = null;
@@ -38,15 +36,17 @@ class Artist
     #[ORM\OneToMany(targetEntity: Album::class, mappedBy: 'artist_User_idUser')]
     private Collection $albums;
 
-    #[ORM\ManyToOne(inversedBy: 'idArtist')]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?LabelHasArtist $LabelHasArtist = null;
+    #[ORM\OneToMany(targetEntity: LabelHasArtist::class, mappedBy: 'idArtist')]
+    private Collection $labelHasArtist;
+
+   
 
 
     public function __construct()
     {
         $this->songs = new ArrayCollection();
         $this->albums = new ArrayCollection();
+        $this->labelHasArtist = new ArrayCollection();
 
     }
 
@@ -75,18 +75,6 @@ class Artist
     public function setFullname(string $fullname): static
     {
         $this->fullname = $fullname;
-
-        return $this;
-    }
-
-    public function getLabel(): ?string
-    {
-        return $this->label;
-    }
-
-    public function setLabel(string $label): static
-    {
-        $this->label = $label;
 
         return $this;
     }
@@ -171,25 +159,63 @@ class Artist
         return $this;
     }
     
-    public function getLabelHasArtist(): ?LabelHasArtist
+    /**
+     * @return Collection<int, LabelHasArtist>
+     */
+    public function getLabelHasArtist(): Collection
     {
-        return $this->LabelHasArtist;
+        return $this->labelHasArtist;
     }
-    
-    public function setLabelHasArtist(?LabelHasArtist $LabelHasArtist): static
+
+    public function addLabelHasArtist(LabelHasArtist $labelHasArtist): static
     {
-        $this->LabelHasArtist = $LabelHasArtist;
-        
+        if (!$this->labelHasArtist->contains($labelHasArtist)) {
+            $this->labelHasArtist->add($labelHasArtist);
+            $labelHasArtist->setIdArtist($this);
+        }
+
         return $this;
     }
 
+    public function removeLabelHasArtist(LabelHasArtist $labelHasArtist): static
+    {
+        if ($this->labelHasArtist->removeElement($labelHasArtist)) {
+            // set the owning side to null (unless already changed)
+            if ($labelHasArtist->getIdArtist() === $this) {
+                $labelHasArtist->setIdArtist(null);
+            }
+        }
+
+        return $this;
+    }
     public function artistSerializer()
     {
     
         return [
             'fullname' => $this->getFullname(),
-            'label' => $this->getLabel(),
             'description' => $this->getDescription(),
+        ];
+    }
+
+    public function artistAllSerializer()
+    {
+        $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('Y-m-d') : null;
+    
+        $label = $this->labelHasArtist->filter(function($labelHasArtist) {
+            return $labelHasArtist->getLeftAt() === null;
+        })->map(function($labelHasArtist) {
+            return $labelHasArtist->getIdLabel()->getLabelName();
+        })->first(); 
+
+        $sexe = $this->getUserIdUser()->getSexe() === '1' ? 'Homme' : 'Femme';
+        return [
+            'firstname' => $this->getUserIdUser()->getFirstname(),
+            'lastname' => $this->getUserIdUser()->getLastname(),
+            'sexe' => $sexe,
+            'dateBirth'=>$dateBirthFormatted,  
+            'Artist.CreatedAt' => $this->getUserIdUser()->getCreateAt(),
+            'description' => $this->getDescription(),        
+            'label' => $label,
         ];
     }
 }

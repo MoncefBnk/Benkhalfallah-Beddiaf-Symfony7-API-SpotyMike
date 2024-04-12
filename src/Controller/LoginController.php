@@ -108,24 +108,36 @@ class LoginController extends AbstractController
 
         $existingUserWithIdUser = $this->repository->findOneBy(['idUser' => $requestData['idUser']]);
         if ($existingUserWithIdUser) {
-            throw new BadRequestHttpException("Un compte utilisant cette IdUser est déjà enregistré");
+            return $this->json([
+                'error' => true,
+                'message' => 'Un compte utilisant cette IdUser est déjà enregistré',
+            ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         } // 409 Conflict
 
         $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
         if ($existingUser) {
-            throw new BadRequestHttpException("Un compte utilisant cette adresse mail est déjà enregistré");
+            return $this->json([
+                'error' => true,
+                'message' => 'Cette email est déjà utilisée par un autre compte.',
+            ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         } // 409 Conflict
         $dateBirth = DateTimeImmutable::createFromFormat('d/m/Y', $requestData['dateBirth']);
 
         if ($dateBirth === false) {           
-            throw new BadRequestHttpException("Le format de la date de naissance est invalide. le format attendu est JJ/MM/AAAA");
+            return $this->json([
+                'error' => true,
+                'message' => 'Le format de la date de naissance est invalide. le format attendu est JJ/MM/AAAA',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
 
         $today = new DateTime();
         $age = $today->diff($dateBirth)->y;
 
         if ($age < 12) {
-            throw new BadRequestHttpException("l'utilisateur doit avoir au moins 12 ans");
+            return $this->json([
+                'error' => true,
+                'message' => "l'utilisateur doit avoir au moins 12 ans",
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         } // 406 Bad Request
 
         $invalidData = [];
@@ -157,7 +169,6 @@ class LoginController extends AbstractController
             return $this->json([
                 'error' => true,
                 'message' => 'Une ou plusieurs donnée sont erronées',
-                'data' => $invalidData,
             ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         }
 
@@ -214,7 +225,7 @@ class LoginController extends AbstractController
         ], Response::HTTP_CREATED);
     }
 
-    #[Route('/password-reset', name: 'app_reset_password', methods: ['POST'])]
+    #[Route('/password-lost', name: 'app_reset_password', methods: ['POST'])]
     // it requires email then if it exists in the database it will send an email to the user with a link to reset the password
     public function resetPassword(Request $request): JsonResponse
     {

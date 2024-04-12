@@ -28,8 +28,8 @@ class Album
     #[ORM\Column(length: 125)]
     private ?string $cover = null;
 
-    #[ORM\Column]
-    private ?int $year = 2024;
+    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    private ?\DateTimeInterface $year = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createAt = null;
@@ -101,12 +101,12 @@ class Album
         return $this;
     }
 
-    public function getYear(): ?int
+    public function getYear(): ?\DateTimeInterface
     {
         return $this->year;
     }
 
-    public function setYear(int $year): static
+    public function setYear(\DateTimeInterface $year): static
     {
         $this->year = $year;
 
@@ -178,23 +178,40 @@ class Album
 
         return $this;
     }
-    
+
     public function albumSerializer()
     {
         $songs = [];
-    foreach ($this->getSongIdSong() as $song) {
-        $songs[] = $song->songSerializer();
-    }
+        foreach ($this->getSongIdSong() as $song) {
+            $songs[] = $song->songSerializer();
+        }
+
+        $artist = $this->getArtistUserIdUser();
+        $year = $this->getYear();
+        $formatedYear = $year ? $year->format('Y') : null;
+
+        $label = null;
+        $labelHasArtist = $this->getArtistUserIdUser()->getLabelHasArtist()->filter(function($labelHasArtist) use ($year) {
+            $joinedAt = $labelHasArtist->getJoinedAt();
+            $leftAt = $labelHasArtist->getLeftAt();
+
+            return $joinedAt<= $year && ($leftAt === null || $leftAt > $year);
+        })->first();
+
+        if ($labelHasArtist) {
+            $label = $labelHasArtist->getIdLabel()->getLabelName();
+        }
 
         return [
-            'name' => $this->getNom(),
+            'id' => $this->getId(),
+            'nom' => $this->getNom(),
             'categ' => $this->getCateg(),
+            'label' => $label,
             'cover' => $this->getCover(),
-            'year' => $this->getYear(),
+            'year' => $formatedYear,
             'createdAt' => $this->getCreateAt(),
-            'updatedAt' => $this->getUpdateAt(),
-            'artist' =>$this->getArtistUserIdUser() ?  $this->getArtistUserIdUser()->artistSerializer() : [],
             'songs' => $songs,
+            'artist' => $artist ? $artist->artistSerializer() : [],
         ];
     }
 }
