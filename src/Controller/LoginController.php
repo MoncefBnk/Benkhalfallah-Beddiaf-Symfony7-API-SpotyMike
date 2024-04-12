@@ -80,6 +80,24 @@ class LoginController extends AbstractController
                 'message' => 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et avoir 8 caractères minimum.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
+        $cache = new FilesystemAdapter();
+        $cacheKey = 'login_' . urlencode($email);
+        $cacheItem = $cache->getItem($cacheKey);
+        $requestCount = $cacheItem->get() ?? 0;
+
+        $timeToExpire = 30;
+        $timeToExpireInMinutes = $timeToExpire / 60;
+        if ($requestCount >= 5) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Trop de tentative de connexion (5max). Veuillez réessayer ultérieurement - '.$timeToExpireInMinutes.' min d\'attente.',
+            ], JsonResponse::HTTP_TOO_MANY_REQUESTS); // 429 Too Many Requests
+        }
+
+        $cacheItem->set($requestCount + 1);
+        $cacheItem->expiresAfter(5); // 5 seconds
+        $cache->save($cacheItem);
+
 
         $user = $this->repository->findOneBy(["email" => $email]);
 
@@ -99,8 +117,8 @@ class LoginController extends AbstractController
         return $this->json([
             'error' => false,
             'message' => 'l\'utilisateur a été authentifié avec succès',
-            'user' => $user->userSerializer(),
-            'token' => $JWTManager->create($user), // A ENLEVER //
+            'user' => $user->loginUserSerializer(),
+            'token' => $JWTManager->create($user),
         ]);
     }
 
@@ -131,7 +149,7 @@ class LoginController extends AbstractController
         if ($existingUser) {
             return $this->json([
                 'error' => true,
-                'message' => 'Cette email est déjà utilisée par un autre compte.',
+                'message' => 'Cette email est déjà utilisé par un autre compte.',
             ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         } // 409 Conflict
         $dateBirth = DateTimeImmutable::createFromFormat('d/m/Y', $requestData['dateBirth']);
@@ -139,7 +157,7 @@ class LoginController extends AbstractController
         if ($dateBirth === false) {           
             return $this->json([
                 'error' => true,
-                'message' => 'Le format de la date de naissance est invalide. le format attendu est JJ/MM/AAAA.',
+                'message' => 'Le format de la date de naissance est invalide. Le format attendu est JJ/MM/AAAA.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
 
@@ -149,7 +167,7 @@ class LoginController extends AbstractController
         if ($age < 12) {
             return $this->json([
                 'error' => true,
-                'message' => "l'utilisateur doit avoir au moins 12 ans.",
+                'message' => "L'utilisateur doit avoir au moins 12 ans.",
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         } // 406 Bad Request
 
@@ -199,7 +217,7 @@ class LoginController extends AbstractController
         if (!preg_match($passwordRequirements, $password)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et avoir 8 caractères minimum',
+                'message' => 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et avoir 8 caractères minimum.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
         // Validate email format
@@ -243,8 +261,9 @@ class LoginController extends AbstractController
 
     #[Route('/password-lost', name: 'app_reset_password', methods: ['POST'])]
     // it requires email then if it exists in the database it will send an email to the user with a link to reset the password
-    public function resetPassword(Request $request): JsonResponse
+    public function resetPassword(Request $request, JWTTokenManagerInterface $JWTManager): JsonResponse
     {
+        
         $requestData = $request->request->all();
 
         if ($request->headers->get('content-type') === 'application/json') {
@@ -266,24 +285,30 @@ class LoginController extends AbstractController
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
 
+
         // Rate limiter
         $cache = new FilesystemAdapter();
         $cacheKey = 'reset_password_' . urlencode($email);
         $cacheItem = $cache->getItem($cacheKey);
         $requestCount = $cacheItem->get() ?? 0;
+        $timeToExpire = 300; 
+        $timeToExpireInMinutes = $timeToExpire / 60;
+        //i want to get the time reamining in 
 
         if ($requestCount >= 3) {
             return $this->json([
                 'error' => true,
-                'message' => 'Trop de demande de réinitialisation de mot de passe ( 3 max ). Veuillez attendre avant de réessayer ( Dans 5 min).',
+                'message' => 'Trop de demandes de réinitialisation de mot de passe ( 3 max ). Veuillez attendre avant de réessayer ( Dans '.$timeToExpireInMinutes.' min).',
             ], JsonResponse::HTTP_TOO_MANY_REQUESTS); // 429 Too Many Requests
         }
 
         $cacheItem->set($requestCount + 1);
-        $cacheItem->expiresAfter(5); // 20 seconds
+        $cacheItem->expiresAfter( $timeToExpire); 
         $cache->save($cacheItem);
 
         $user = $this->repository->findOneBy(['email' => $email]);
+
+
 
         if (!$user) {
             return $this->json([
@@ -292,12 +317,79 @@ class LoginController extends AbstractController
             ], JsonResponse::HTTP_NOT_FOUND); // 404 Not Found
         }
 
+        $token = $JWTManager->create($user);
+        
         // send email to the user with a link to reset the password
         // $this->mailer->send($email, 'Reset your password', 'Click on the link below to reset your password: http://localhost:8000/reset-password/' . $user->getId());
 
         return $this->json([
             'success' => true,
+            'token' => $token,
             'message' => 'Un email de réinitialisation de mot de passe a été envoyé à votre adresse email. Veuillez suivre les instructions contenues dans l\'email pour réinitialiser votre mot de passe.',
+            
         ]);
     }
+
+    
+    #[Route('/reset-password/{token}', name: 'app_reset_password_post', methods: ['GET'])]
+    public function resetPasswordPost(Request $request, string $token): JsonResponse
+    {
+        $requestData = $request->request->all();
+  
+        //if token empty return error
+        if (empty($token)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Token manquant. Veuillez fournir un token pour la réinitialisation du mot de passe.',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
+
+        if ($request->headers->get('content-type') === 'application/json') {
+            $requestData = json_decode($request->getContent(), true);
+        }
+
+        $password = $requestData['password'] ?? null;
+
+        if (empty($password)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Veuillez fournir un nouveau mot de passe.',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
+
+        // Validate password requirements
+
+        $passwordRequirements = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/';
+        if (!preg_match($passwordRequirements, $password)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le nouveau mot de passe ne respecte pas les critères requis. Il doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et être composé d\'au moins 8 caractères.',
+            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+        }
+
+        // if token expired return error
+
+        $user = $this->repository->findOneBy(['resetPasswordToken' => $token]);
+
+        if (!$user) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Token invalide. Veuillez vérifier et réessayer.',
+            ], JsonResponse::HTTP_NOT_FOUND); // 404 Not Found
+        }
+
+        $user->setPassword($password);
+        $user->setResetPasswordToken(null);
+        $user->setUpdateAt(new DateTimeImmutable());
+
+        
+        $this->entityManager->flush();
+
+        return $this->json([
+            'success' => true,
+            'message' => 'Password reset successfully.',
+        ]);
+    }
+    //afinir
+
 }

@@ -287,4 +287,24 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             'dateBirth'=>$dateBirthFormatted,
         ];
     }
+    public function loginUserSerializer(bool $children = false)
+    {
+        $dateBirthFormatted = $this->getDateBirth() ? $this->getDateBirth()->format('d-m-Y') : null;
+
+        //check if user has artist
+        if ($this->getArtist() !== null) {
+            $children = true;
+        } 
+        $sexe = $this->getSexe() === '1' ? 'Homme' : 'Femme';
+        return [
+            'firstname' => $this->getFirstname(),
+            'lastname' => $this->getLastname(),
+            'email' => $this->getEmail(),
+            'tel' => $this->getTel(),
+            'sexe' =>  $sexe,
+            'artist' => $children ? $this->getArtist()->artistSerializer() : null,
+            'dateBirth'=>$dateBirthFormatted,
+            'createdAt' => $this->getCreateAt(),
+        ];
+    }
 }

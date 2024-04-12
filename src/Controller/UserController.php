@@ -74,7 +74,7 @@ class UserController extends AbstractController
         $invalidData = [];
         if(isset($requestData['firstname']) &&
             empty($requestData['firstname']) || //firstname empty
-            strlen($requestData['firstname']) > 90
+            isset($requestData['firstname']) &&strlen($requestData['firstname']) > 90
 
        
          ) {
@@ -165,7 +165,7 @@ class UserController extends AbstractController
 
         return $this->json([
             'error' => false,
-            'message' => 'Votre inscription a été prise en compte',
+            'message' => 'Votre inscription a bien été prise en compte',
         ]);
     }
 
@@ -215,7 +215,5 @@ class UserController extends AbstractController
     }
 }
 
-//verifier les données
-//tester toutes les routes
-//mettre les guards pour la restriction sur le login
+//pagination
 //definir le token de reinitialisation du mdp 
