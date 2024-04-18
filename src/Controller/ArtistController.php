@@ -14,7 +14,7 @@ use App\Entity\Label;
 use App\Entity\LabelHasArtist;
 use DateTimeImmutable;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-
+use Symfony\Component\Validator\Constraints\Length;
 
 class ArtistController extends AbstractController
 {
@@ -101,38 +101,74 @@ class ArtistController extends AbstractController
     #[Route('/artist', name: 'app_get_artists', methods: ['GET'])]
     public function getAllArtists(Request $request): JsonResponse
     {
-        $dataMiddellware = $this->tokenVerifier->checkToken($request);
-        if (gettype($dataMiddellware) == 'boolean') {
-            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
+        // Check token middleware
+        $dataMiddleware = $this->tokenVerifier->checkToken($request);
+        if (gettype($dataMiddleware) == 'boolean') {
+            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddleware));
         }
-
-        if (!$dataMiddellware) {
+    
+        if (!$dataMiddleware) {
             return $this->json([
                 'error' => true,
-                'message' => 'Authentication required. You must be logged in to perform this action.',
+                'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
             ], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-        // Your existing code to fetch artists
         $artists = $this->entityManager->getRepository(Artist::class)->findAll();
-
+    
+        // Serialize artists
         $serializedArtists = [];
         foreach ($artists as $artist) {
             $serializedArtists[] = $artist->artistAllSerializer();
         }
+    
+        //check format of limit and page 
+        
+       
 
-        //i want to add pagination where i display 5 artists per page and i can navigate to the next page using an attribute in the body of the get request which refers to the index of the page
+        $totalArtist = count($serializedArtists);
+        // Pagination
+        $limit = $request->query->get('limit', 5);
+        $page =  $request->query->get('page', 1);
+        
+        if (!is_numeric($limit) || $limit <= 0) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le paramètre de pagination est invalide. Veuillez fournir un numéro de page valide',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
+        if (!is_numeric($page) || $page <= 0) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le paramètre de pagination est invalide. Veuillez fournir un numéro de page valide',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
+       
+
+        $offset = ($page - 1) * $limit;
+        $paginatedArtists = array_slice($serializedArtists, $offset, $limit);
+
+        if (empty($paginatedArtists)) {
+            return $this->json([
+            'error' => true,
+            'message' => 'Aucun artiste trouvé pour la page demandée.',
+            ], JsonResponse::HTTP_NOT_FOUND);
+        }
+    
+        // Return JSON response
         return $this->json([
             'error' => false,
-            'artists' => $serializedArtists,
+            'artists' => $paginatedArtists,
             'message' => 'Informations des artistes récupérées avec succès.',
-            'pagination' => '{"currentPage":"1", "totqlPages":"2", "totalItems":"10"}' ,
+            'pagination' => [
+                'currentPage' => (int)$page,
+                'totalPages' => ceil(count($serializedArtists) / $limit),
+                'totalArtists' => $totalArtist
+            ],
         ]);
     }
-
-
 
     #[Route('/artist', name: 'app_create_artist', methods: ['POST'])]
     public function createArtist(Request $request): JsonResponse
