@@ -238,14 +238,6 @@ class Artist
 
         return $this;
     }
-    public function artistSerializer()
-    {
-    
-        return [
-            'fullname' => $this->getFullname(),
-            'description' => $this->getDescription(),
-        ];
-    }
 
     /**
      * @return Collection<int, Featuring>
@@ -274,6 +266,15 @@ class Artist
         return $this;
     }
 
+    public function artistSerializer()
+    {
+    
+        return [
+            'fullname' => $this->getFullname(),
+            'description' => $this->getDescription(),
+        ];
+    }
+    
     public function artistAllSerializer()
     {
         $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('d-m-Y') : null;
@@ -294,7 +295,6 @@ class Artist
             'fullname' => $this->getFullname(),
             'avatar' => $this->getAvatar(), 
             'followers' => $this->getFollowers(),
-            //display all the songs by idSongs 
             'featurings' => $featurings,
             'sexe' => $sexe,
             'dateBirth'=>$dateBirthFormatted,  
