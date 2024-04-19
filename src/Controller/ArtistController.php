@@ -71,7 +71,7 @@ class ArtistController extends AbstractController
         //if artist is user has artist && artist fullname is the same as the one in the url TOOOO DOOOOO !!!!!!!!!!!!!!!!
         if ($user->getArtist() !== null && $user->getArtist()->getFullname() === $fullname) {
             $artist = $user->getArtist();
-            $serializedArtists = $artist->artistAllSerializer();
+            $serializedArtists = $artist->artistSearchSerializer();
             return $this->json([
                 'error' => false,
                 'artist' => $serializedArtists,
@@ -86,7 +86,7 @@ class ArtistController extends AbstractController
                 ], JsonResponse::HTTP_NOT_FOUND);
             }
 
-            $serializedArtists = $artist->artistAllSerializer();
+            $serializedArtists = $artist->artistSearchSerializer();
 
 
 
@@ -409,18 +409,11 @@ class ArtistController extends AbstractController
             $artist->setActive('active');
             $artist->setCreatedAt(new DateTimeImmutable());
             $artist->setUpdatedAt(new DateTimeImmutable());
-            //with the label id we can create a new labelHasArtist
             $labelHasArtist = new LabelHasArtist();
             $labelHasArtist->setIdArtist($artist);
             $labelHasArtist->setIdLabel($label);
             $labelHasArtist->setJoinedAt(new DateTime());
             $labelHasArtist->setLeftAt(null);
-
-            $this->entityManager->persist($labelHasArtist);
-
-            $this->entityManager->persist($artist);
-            $this->entityManager->flush();
-
 
             if (isset($requestData['avatar'])) {
                 $parameters = $request->getContent();
@@ -450,21 +443,22 @@ class ArtistController extends AbstractController
                     }
 
                     //check file size should be between 1Mb and 7Mb
-                    if (strlen($file) < 1000000 || strlen($file) > 7000000) {
-                        return $this->json([
-                            'error' => true,
-                            'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
-                        ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
-                    }
+                    // if (strlen($file) < 1000000 || strlen($file) > 7000000) {
+                    //     return $this->json([
+                    //         'error' => true,
+                    //         'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
+                    //     ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                    // }
 
                     $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();
                     mkdir($chemin);
                     file_put_contents($chemin . '/avatar.' . $fileFormat[1], $file);
                     $artist->setAvatar($chemin . '/avatar.' . $fileFormat[1]);
-                    $this->entityManager->persist($artist);
-                    $this->entityManager->flush();
                 }
             }
+            $this->entityManager->persist($labelHasArtist);
+            $this->entityManager->persist($artist);
+            $this->entityManager->flush();
 
             return $this->json([
                 'success' => true,

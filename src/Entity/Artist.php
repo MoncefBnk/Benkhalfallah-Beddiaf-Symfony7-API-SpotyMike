@@ -274,8 +274,35 @@ class Artist
             'description' => $this->getDescription(),
         ];
     }
-    
+
     public function artistAllSerializer()
+    {
+        $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('d-m-Y') : null;
+    
+
+      //get all the featurings where this artist is featured
+        $featurings = [];
+        foreach ($this->getFeaturings() as $featuring) {
+            $featurings[] = $featuring->featuringSerializer();
+        }
+
+
+        $createdAt = $this->getCreatedAt() ? $this->getCreatedAt()->format('Y-m-d') : null;
+        $sexe = $this->getUserIdUser()->getSexe() === '1' ? 'Homme' : 'Femme';
+        return [
+            'firstname' => $this->getUserIdUser()->getFirstname(),
+            'lastname' => $this->getUserIdUser()->getLastname(),
+            'fullname' => $this->getFullname(),
+            'avatar' => $this->getAvatar(), 
+            'sexe' => $sexe,
+            'dateBirth'=>$dateBirthFormatted,  
+            'Artist.CreatedAt' => $createdAt,    
+            'albums' => $this->albums->map(function($album) {
+                return $album->albumSerializer();
+            }),
+        ];
+    }
+    public function artistSearchSerializer()
     {
         $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('d-m-Y') : null;
     

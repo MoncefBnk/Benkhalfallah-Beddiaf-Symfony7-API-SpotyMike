@@ -191,7 +191,7 @@ class Album
         $formatedYear = $year ? $year->format('Y') : null;
 
         $label = null;
-        $labelHasArtist = $this->getArtistUserIdUser()->getLabelHasArtist()->filter(function($labelHasArtist) use ($year) {
+        $labelHasArtist = $artist->getLabelHasArtist()->filter(function($labelHasArtist) use ($year) {
             $joinedAt = $labelHasArtist->getJoinedAt();
             $leftAt = $labelHasArtist->getLeftAt();
 
