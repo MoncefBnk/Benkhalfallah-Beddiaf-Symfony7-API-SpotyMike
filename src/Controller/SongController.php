@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Song;
 use App\Entity\Artist;
+use App\Entity\Featuring;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -75,14 +76,23 @@ class SongController extends AbstractController
 
         $song->setAlbum($album);
 
-        if (isset($requestData['artistIds']) && is_array($requestData['artistIds'])) {
-            foreach ($requestData['artistIds'] as $artistId) {
+        
+        if (isset($requestData['featuring']) && is_array($requestData['featuring'])) {
+            $featuring = new Featuring(); 
+            
+            $featuring->setIdSong($song);
+
+            $featuring->setIdFeaturing('1234567890');
+
+            foreach ($requestData['featuring'] as $artistId) {
                 $artist = $this->entityManager->getRepository(Artist::class)->find($artistId);
                 if ($artist) {
-                    $song->addArtistIdUser($artist);
+                    $featuring->addIdArtist($artist);
                 }
             }
+            $this->entityManager->persist($featuring);
         }
+        
 
         $this->entityManager->persist($song);
         $this->entityManager->flush();

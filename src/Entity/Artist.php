@@ -37,6 +37,14 @@ class Artist
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $avatar = null;
+
+    //followers string
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $followers = '0';
+
+
     #[ORM\ManyToMany(targetEntity: Song::class, mappedBy: 'Artist_idUser')]
     private Collection $songs;
 
@@ -46,6 +54,8 @@ class Artist
     #[ORM\OneToMany(targetEntity: LabelHasArtist::class, mappedBy: 'idArtist')]
     private Collection $labelHasArtist;
 
+    #[ORM\ManyToMany(targetEntity: Featuring::class, mappedBy: 'idArtist')]
+    private Collection $featurings;
    
 
 
@@ -54,6 +64,7 @@ class Artist
         $this->songs = new ArrayCollection();
         $this->albums = new ArrayCollection();
         $this->labelHasArtist = new ArrayCollection();
+        $this->featurings = new ArrayCollection();
 
     }
 
@@ -98,6 +109,30 @@ class Artist
         return $this;
     }
 
+    public function getFollowers(): ?string
+    {
+        return $this->followers;
+    }
+
+    public function setFollowers(?string $followers): static
+    {
+        $this->followers = $followers;
+
+        return $this;
+    }
+
+    public function getAvatar(): ?string
+    {
+        return $this->avatar;
+    }
+
+    public function setAvatar(?string $avatar): static
+    {
+        $this->avatar = $avatar;
+
+        return $this;
+    }
+    
     public function getActive(): ?string
     {
         return $this->active;
@@ -142,24 +177,7 @@ class Artist
         return $this->songs;
     }
 
-    public function addSong(Song $song): static
-    {
-        if (!$this->songs->contains($song)) {
-            $this->songs->add($song);
-            $song->addArtistIdUser($this);
-        }
 
-        return $this;
-    }
-
-    public function removeSong(Song $song): static
-    {
-        if ($this->songs->removeElement($song)) {
-            $song->removeArtistIdUser($this);
-        }
-
-        return $this;
-    }
 
     /**
      * @return Collection<int, Album>
@@ -229,21 +247,55 @@ class Artist
         ];
     }
 
+    /**
+     * @return Collection<int, Featuring>
+     */
+    public function getFeaturings(): Collection
+    {
+        return $this->featurings;
+    }
+    
+    public function addFeaturing(Featuring $featuring): static
+    {
+        if (!$this->featurings->contains($featuring)) {
+            $this->featurings->add($featuring);
+            $featuring->addIdArtist($this);
+        }
+        
+        return $this;
+    }
+    
+    public function removeFeaturing(Featuring $featuring): static
+    {
+        if ($this->featurings->removeElement($featuring)) {
+            $featuring->removeIdArtist($this);
+        }
+        
+        return $this;
+    }
+
     public function artistAllSerializer()
     {
-        $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('Y-m-d') : null;
+        $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('d-m-Y') : null;
     
-        // $label = $this->labelHasArtist->filter(function($labelHasArtist) {
-        //     return $labelHasArtist->getLeftAt() === null;
-        // })->map(function($labelHasArtist) {
-        //     return $labelHasArtist->getIdLabel()->getLabelName();
-        // })->first(); 
+
+      //get all the featurings where this artist is featured
+        $featurings = [];
+        foreach ($this->getFeaturings() as $featuring) {
+            $featurings[] = $featuring->featuringSerializer();
+        }
+
 
         $createdAt = $this->getCreatedAt() ? $this->getCreatedAt()->format('Y-m-d') : null;
         $sexe = $this->getUserIdUser()->getSexe() === '1' ? 'Homme' : 'Femme';
         return [
             'firstname' => $this->getUserIdUser()->getFirstname(),
             'lastname' => $this->getUserIdUser()->getLastname(),
+            'fullname' => $this->getFullname(),
+            'avatar' => $this->getAvatar(), 
+            'followers' => $this->getFollowers(),
+            //display all the songs by idSongs 
+            'featurings' => $featurings,
             'sexe' => $sexe,
             'dateBirth'=>$dateBirthFormatted,  
             'Artist.CreatedAt' => $createdAt,    
