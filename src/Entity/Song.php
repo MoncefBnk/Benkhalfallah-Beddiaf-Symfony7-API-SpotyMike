@@ -33,18 +33,18 @@ class Song
     #[ORM\Column]
     private ?\DateTimeImmutable $createAt = null;
 
-    #[ORM\ManyToMany(targetEntity: Artist::class, inversedBy: 'songs')]
-    private Collection $Artist_idUser;
-
     #[ORM\ManyToOne(inversedBy: 'song_idSong')]
     private ?Album $album = null;
 
     #[ORM\ManyToOne(inversedBy: 'Song_idSong')]
     private ?PlaylistHasSong $playlistHasSong = null;
 
+    #[ORM\OneToMany(targetEntity: Featuring::class, mappedBy: 'idSong')]
+    private Collection $idFeaturing;
+
     public function __construct()
     {
-        $this->Artist_idUser = new ArrayCollection();
+        $this->idFeaturing = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -123,31 +123,6 @@ class Song
 
         return $this;
     }
-
-    /**
-     * @return Collection<int, Artist>
-     */
-    public function getArtistIdUser(): Collection
-    {
-        return $this->Artist_idUser;
-    }
-
-    public function addArtistIdUser(Artist $artistIdUser): static
-    {
-        if (!$this->Artist_idUser->contains($artistIdUser)) {
-            $this->Artist_idUser->add($artistIdUser);
-        }
-
-        return $this;
-    }
-
-    public function removeArtistIdUser(Artist $artistIdUser): static
-    {
-        $this->Artist_idUser->removeElement($artistIdUser);
-
-        return $this;
-    }
-
     public function getAlbum(): ?Album
     {
         return $this->album;
@@ -171,14 +146,80 @@ class Song
 
         return $this;
     }
+    
+    /**
+     * @return Collection<int, Featuring>
+     */
+    public function getFeaturing(): Collection
+    {
+        return $this->idFeaturing;
+    }
+    
+    public function addFeaturing(Featuring $featuring): static
+    {
+        if (!$this->idFeaturing->contains($featuring)) {
+            $this->idFeaturing->add($featuring);
+            $featuring->setIdSong($this);
+        }
+        
+        return $this;
+    }
+    
+    public function removeFeaturing(Featuring $featuring): static
+    {
+        if ($this->idFeaturing->removeElement($featuring)) {
+            // set the owning side to null (unless already changed)
+            if ($featuring->getIdSong() === $this) {
+                $featuring->setIdSong(null);
+            }
+        }
+        return $this;
+    }
+
     public function songSerializer()
     {
+
+        $featuring = [];
+        foreach ($this->getFeaturing() as $feat) {
+            $featuring[] = $feat->featuringSerializer();
+        }
+        // get artist from album
+        $artist = $this->getAlbum()->getArtistUserIdUser();
         $createdAt = $this->getCreateAt() ? $this->getCreateAt()->format('Y-m-d') : null;
         return [
             'id' => strval($this->getId()),
             'title' => $this->getTitle(),
             'cover' => $this->getCover(),
             'createdAt' => $createdAt,
+
+            
+        ];
+    }
+    public function songSerializerForAlbum()
+    {
+
+
+      //get artist all serializer from featuring table 
+        $featuring = [];
+        foreach ($this->getFeaturing() as $feat) {
+
+            foreach ($feat->getIdArtist() as $artist) {
+            $featuring[] = $artist->artistAlbumSerializer();
+            }
+
+        }
+
+      
+
+        // get artist from album
+
+        $createdAt = $this->getCreateAt() ? $this->getCreateAt()->format('Y-m-d') : null;
+        return [
+            'id' => strval($this->getId()),
+            'title' => $this->getTitle(),
+            'cover' => $this->getCover(),
+            'featuring' => $featuring,
+            
         ];
     }
 }

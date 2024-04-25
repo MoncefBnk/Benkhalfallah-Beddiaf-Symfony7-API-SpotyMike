@@ -14,7 +14,7 @@ use App\Entity\Label;
 use App\Entity\LabelHasArtist;
 use DateTimeImmutable;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-
+use Symfony\Component\Validator\Constraints\Length;
 
 class ArtistController extends AbstractController
 {
@@ -31,7 +31,7 @@ class ArtistController extends AbstractController
 
 
     //add authentification middleware
-    
+
 
 
     //get artist by fullname if the fullname of the user authenticated is an artist and has a matching fullname
@@ -52,8 +52,8 @@ class ArtistController extends AbstractController
 
         $user = $dataMiddellware;
 
-    // if fullname is empty return error
-        if ($fullname ===' ') {
+        // if fullname is empty return error
+        if ($fullname === ' ') {
             return $this->json([
                 'error' => true,
                 'message' => 'Le nom d\'artiste est obligatoire pour cette requête.',
@@ -71,13 +71,12 @@ class ArtistController extends AbstractController
         //if artist is user has artist && artist fullname is the same as the one in the url TOOOO DOOOOO !!!!!!!!!!!!!!!!
         if ($user->getArtist() !== null && $user->getArtist()->getFullname() === $fullname) {
             $artist = $user->getArtist();
-            $serializedArtists = $artist->artistAllSerializer();
+            $serializedArtists = $artist->artistSearchSerializer();
             return $this->json([
                 'error' => false,
                 'artist' => $serializedArtists,
             ]);
-        } 
-        else {
+        } else {
             $artist = $this->repository->findOneBy(['fullname' => $fullname]);
 
             if (!$artist) {
@@ -87,7 +86,7 @@ class ArtistController extends AbstractController
                 ], JsonResponse::HTTP_NOT_FOUND);
             }
 
-            $serializedArtists = $artist->artistAllSerializer();
+            $serializedArtists = $artist->artistSearchSerializer();
 
 
 
@@ -101,38 +100,76 @@ class ArtistController extends AbstractController
     #[Route('/artist', name: 'app_get_artists', methods: ['GET'])]
     public function getAllArtists(Request $request): JsonResponse
     {
-        $dataMiddellware = $this->tokenVerifier->checkToken($request);
-        if (gettype($dataMiddellware) == 'boolean') {
-            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
+        // Check token middleware
+        $dataMiddleware = $this->tokenVerifier->checkToken($request);
+        if (gettype($dataMiddleware) == 'boolean') {
+            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddleware));
         }
 
-        if (!$dataMiddellware) {
+        if (!$dataMiddleware) {
             return $this->json([
                 'error' => true,
-                'message' => 'Authentication required. You must be logged in to perform this action.',
+                'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
             ], JsonResponse::HTTP_UNAUTHORIZED);
         }
 
-        // Your existing code to fetch artists
         $artists = $this->entityManager->getRepository(Artist::class)->findAll();
 
+        // Serialize artists
         $serializedArtists = [];
         foreach ($artists as $artist) {
             $serializedArtists[] = $artist->artistAllSerializer();
         }
 
-        //i want to add pagination where i display 5 artists per page and i can navigate to the next page using an attribute in the body of the get request which refers to the index of the page
+        //check format of limit and page 
 
 
+
+        $totalArtist = count($serializedArtists);
+        // Pagination
+        $limit = $request->query->get('limit', 5);
+        $page =  $request->query->get('page');
+
+
+
+        if (!is_numeric($limit) || $limit <= 0) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le paramètre de pagination est invalide. Veuillez fournir un numéro de page valide',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        if (empty($page) ||!is_numeric($page) || $page <= 0) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le paramètre de pagination est invalide. Veuillez fournir un numéro de page valide',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+
+
+        $offset = ($page - 1) * $limit;
+        $paginatedArtists = array_slice($serializedArtists, $offset, $limit);
+
+        if (empty($paginatedArtists)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Aucun artiste trouvé pour la page demandée.',
+            ], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        // Return JSON response
         return $this->json([
             'error' => false,
-            'artists' => $serializedArtists,
+            'artists' => $paginatedArtists,
             'message' => 'Informations des artistes récupérées avec succès.',
-            'pagination' => '{"currentPage":"1", "totqlPages":"2", "totalItems":"10"}' ,
+            'pagination' => [
+                'currentPage' => (int)$page,
+                'totalPages' => ceil(count($serializedArtists) / $limit),
+                'totalArtists' => $totalArtist
+            ],
         ]);
     }
-
-
 
     #[Route('/artist', name: 'app_create_artist', methods: ['POST'])]
     public function createArtist(Request $request): JsonResponse
@@ -243,10 +280,46 @@ class ArtistController extends AbstractController
             }
             $this->entityManager->persist($artist);
             $this->entityManager->flush();
+
+            if (isset($requestData['avatar'])) {
+                $parameters = $request->getContent();
+                parse_str($parameters, $data);
+                $explodeData = explode(",", $data['avatar']);
+                if (count($explodeData) == 2) {
+
+                    //check the file format
+                    $fileFormat = explode(';', $explodeData[0]);
+                    //assign the file format to the variable
+                    $fileFormat = explode('/', $fileFormat[0]);
+                  
+                    //if not png or jpeg return error
+                    if ($fileFormat[1] !== 'png' && $fileFormat[1] !== 'jpeg') {
+                        return $this->json([
+                            'error' => true,
+                            'message' => 'Le format de l\'image est invalide. Veuillez fournir une image au format PNG ou JPEG.',
+                        ], JsonResponse::HTTP_BAD_REQUEST);
+                    }
+                    $file = base64_decode($explodeData[1]);
+                    //check if the decode is correct 
+                    if ($file === false) {
+                        return $this->json([
+                            'error' => true,
+                            'message' => 'Erreur lors du décodage de l\'image.',
+                        ], JsonResponse::HTTP_BAD_REQUEST);
+                    }
+                    
+                    $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();                    
+                    file_put_contents($chemin . '/avatar.' . $fileFormat[1], $file);
+                    $artist->setAvatar($chemin . '/avatar.' . $fileFormat[1]);
+                    $this->entityManager->persist($artist);
+                    //rajouter persist label 
+                    $this->entityManager->flush();
+                }
+            }
             return $this->json([
                 'success' => true,
                 'message' => 'Les informations de l\'artiste ont été mises à jour avec succès.',
-                
+
             ], JsonResponse::HTTP_CREATED);
         } else {
 
@@ -272,11 +345,8 @@ class ArtistController extends AbstractController
 
             if (isset($requestData['fullname'])) {
                 $fullname = $requestData['fullname'];
-                // Validate lastname format
-                if (!preg_match('/^[a-zA-Z\s]+$/', $fullname)) {
-                    $invalidData[] = 'fullname';
-                }
-                if (strlen($fullname) > 20) {
+               
+                if (strlen($fullname) < 1 || strlen($fullname) > 30) {
                     $invalidData[] = 'fullname';
                 }
             }
@@ -340,15 +410,54 @@ class ArtistController extends AbstractController
             $artist->setActive('active');
             $artist->setCreatedAt(new DateTimeImmutable());
             $artist->setUpdatedAt(new DateTimeImmutable());
-            //with the label id we can create a new labelHasArtist
             $labelHasArtist = new LabelHasArtist();
             $labelHasArtist->setIdArtist($artist);
             $labelHasArtist->setIdLabel($label);
             $labelHasArtist->setJoinedAt(new DateTime());
             $labelHasArtist->setLeftAt(null);
 
-            $this->entityManager->persist($labelHasArtist);
+            if (isset($requestData['avatar'])) {
+                $parameters = $request->getContent();
+                parse_str($parameters, $data);
 
+                $explodeData = explode(",", $data['avatar']);
+                if (count($explodeData) == 2) {
+
+                    //check the file format
+                    $fileFormat = explode(';', $explodeData[0]);
+                    //assign the file format to the variable
+                    $fileFormat = explode('/', $fileFormat[0]);
+                    //if not png or jpeg return error
+                    if ($fileFormat[1] !== 'png' && $fileFormat[1] !== 'jpeg') {
+                        return $this->json([
+                            'error' => true,
+                            'message' => 'Erreur sur le format du fichier qui n\'est pas pris en compte.',
+                        ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                    }
+                    $file = base64_decode($explodeData[1]);
+                    //check if the decode is correct 
+                    if ($file === false) {
+                        return $this->json([
+                            'error' => true,
+                            'message' => 'Le serveur ne peut pas décoder le contenu base64 en fichier binaire.',
+                        ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                    }
+
+                    //check file size should be between 1Mb and 7Mb
+                    // if (strlen($file) < 1000000 || strlen($file) > 7000000) {
+                    //     return $this->json([
+                    //         'error' => true,
+                    //         'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
+                    //     ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                    // }
+
+                    $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();
+                    mkdir($chemin);
+                    file_put_contents($chemin . '/avatar.' . $fileFormat[1], $file);
+                    $artist->setAvatar($chemin . '/avatar.' . $fileFormat[1]);
+                }
+            }
+            $this->entityManager->persist($labelHasArtist);
             $this->entityManager->persist($artist);
             $this->entityManager->flush();
 
@@ -361,103 +470,103 @@ class ArtistController extends AbstractController
         }
     }
 
-    #[Route('/artist', name: 'app_update_artist', methods: ['PUT'])]
-    public function updateArtist(Request $request): JsonResponse
-    {
-        $requestData = $request->request->all();
+    // #[Route('/artist', name: 'app_update_artist', methods: ['PUT'])]
+    // public function updateArtist(Request $request): JsonResponse
+    // {
+    //     $requestData = $request->request->all();
 
-        if ($request->headers->get('content-type') === 'application/json') {
-            $requestData = json_decode($request->getContent(), true);
-        }
+    //     if ($request->headers->get('content-type') === 'application/json') {
+    //         $requestData = json_decode($request->getContent(), true);
+    //     }
 
-        $artistId = $requestData['id'] ?? null;
+    //     $artistId = $requestData['id'] ?? null;
 
-        if (!$artistId) {
-            return $this->json([
-                'message' => 'Missing artist ID in request body',
-            ], JsonResponse::HTTP_BAD_REQUEST);
-        }
+    //     if (!$artistId) {
+    //         return $this->json([
+    //             'message' => 'Missing artist ID in request body',
+    //         ], JsonResponse::HTTP_BAD_REQUEST);
+    //     }
 
-        $artist = $this->entityManager->getRepository(Artist::class)->find($artistId);
+    //     $artist = $this->entityManager->getRepository(Artist::class)->find($artistId);
 
-        if (!$artist) {
-            return $this->json([
-                'message' => 'Artist not found',
-            ], JsonResponse::HTTP_NOT_FOUND);
-        }
+    //     if (!$artist) {
+    //         return $this->json([
+    //             'message' => 'Artist not found',
+    //         ], JsonResponse::HTTP_NOT_FOUND);
+    //     }
 
-        $requestData = $request->request->all();
+    //     $requestData = $request->request->all();
 
-        if ($request->headers->get('content-type') === 'application/json') {
-            $requestData = json_decode($request->getContent(), true);
-        }
+    //     if ($request->headers->get('content-type') === 'application/json') {
+    //         $requestData = json_decode($request->getContent(), true);
+    //     }
 
-        $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
-        if ($existingArtistWithFullname) {
-            throw new BadRequestHttpException("Un compte utilisant ce nom d'artiste est déjà enregistré");
-        }
+    //     $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
+    //     if ($existingArtistWithFullname) {
+    //         throw new BadRequestHttpException("Un compte utilisant ce nom d'artiste est déjà enregistré");
+    //     }
 
-        $requiredFields = ['fullname', 'label'];
-        $missingFields = [];
+    //     $requiredFields = ['fullname', 'label'];
+    //     $missingFields = [];
 
-        foreach ($requiredFields as $field) {
-            if (isset($requestData[$field])) {
-                if (empty($requestData[$field])) {
-                    $missingFields[] = $field;
-                }
-            }
-        }
+    //     foreach ($requiredFields as $field) {
+    //         if (isset($requestData[$field])) {
+    //             if (empty($requestData[$field])) {
+    //                 $missingFields[] = $field;
+    //             }
+    //         }
+    //     }
 
-        if (!empty($missingFields)) {
-            return $this->json([
-                'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' . $missingFields,
-            ], JsonResponse::HTTP_BAD_REQUEST);
-        }
+    //     if (!empty($missingFields)) {
+    //         return $this->json([
+    //             'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' . $missingFields,
+    //         ], JsonResponse::HTTP_BAD_REQUEST);
+    //     }
 
-        $invalidData = [];
+    //     $invalidData = [];
 
-        if (isset($requestData['fullname']) && strlen($requestData['fullname']) > 90) {
-            $invalidData[] = 'fullname';
-        }
+    //     if (isset($requestData['fullname']) && strlen($requestData['fullname']) > 90) {
+    //         $invalidData[] = 'fullname';
+    //     }
 
-        if (isset($requestData['label']) && strlen($requestData['label']) > 55) {
-            $invalidData[] = 'label';
-        }
+    //     if (isset($requestData['label']) && strlen($requestData['label']) > 55) {
+    //         $invalidData[] = 'label';
+    //     }
 
-        if (isset($requestData['description']) && strlen($requestData['description']) > 55) {
-            $invalidData[] = 'description';
-        }
-        if (!empty($invalidData)) {
-            return $this->json([
-                'message' => 'Une ou plusieurs données sont erronées',
-                'data' => $invalidData,
-            ], JsonResponse::HTTP_CONFLICT);
-        }
+    //     if (isset($requestData['description']) && strlen($requestData['description']) > 55) {
+    //         $invalidData[] = 'description';
+    //     }
+    //     if (!empty($invalidData)) {
+    //         return $this->json([
+    //             'message' => 'Une ou plusieurs données sont erronées',
+    //             'data' => $invalidData,
+    //         ], JsonResponse::HTTP_CONFLICT);
+    //     }
 
-        if (isset($requestData['fullname'])) {
-            $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
-            if ($existingArtistWithFullname) {
-                throw new BadRequestHttpException('An artist with this name already exists');
-            } else {
+    //     if (isset($requestData['fullname'])) {
+    //         $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
+    //         if ($existingArtistWithFullname) {
+    //             throw new BadRequestHttpException('An artist with this name already exists');
+    //         } else {
 
-                $artist->setFullname($requestData['fullname']);
-            }
-        }
-        if (isset($requestData['label'])) {
-            $artist->setLabel($requestData['label']);
-        }
-        if (isset($requestData['description'])) {
-            $artist->setDescription($requestData['description']);
-        }
-        $this->entityManager->persist($artist);
-        $this->entityManager->flush();
+    //             $artist->setFullname($requestData['fullname']);
+    //         }
+    //     }
+    //     if (isset($requestData['label'])) {
+    //         $artist->setLabel($requestData['label']);
+    //     }
+    //     if (isset($requestData['description'])) {
+    //         $artist->setDescription($requestData['description']);
+    //     }
+    //     $this->entityManager->persist($artist);
+    //     $this->entityManager->flush();
 
-        return $this->json([
-            'artist' => $artist->artistSerializer(),
-            'message' => 'Artist updated successfully!',
-            'path' => 'src/Controller/ArtistController.php',
-        ]);
-    }
+    //     return $this->json([
+    //         'artist' => $artist->artistSerializer(),
+    //         'message' => 'Artist updated successfully!',
+    //         'path' => 'src/Controller/ArtistController.php',
+    //     ]);
+    // }
 
 
     //delete artist of current authenticated user

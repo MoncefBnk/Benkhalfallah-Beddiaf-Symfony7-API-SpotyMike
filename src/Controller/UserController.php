@@ -71,18 +71,19 @@ class UserController extends AbstractController
             $requestData = json_decode($request->getContent(), true);
         }
 
-        $invalidData = [];
-        if(isset($requestData['firstname']) &&
-            empty($requestData['firstname']) || //firstname empty
-            isset($requestData['firstname']) &&strlen($requestData['firstname']) > 90
-
-       
-         ) {
+        $allowedKeys = ['firstname', 'lastname', 'sexe', 'tel'];
+        $invalidKeys = array_diff(array_keys($requestData), $allowedKeys);
+        if (!empty($invalidKeys)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Erreur de validation des données.',
-            ], JsonResponse:: HTTP_UNPROCESSABLE_ENTITY);
+                'message' => 'Les données fournies sont invalides ou incomplètes.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
         }
+        
+
+        $invalidData = [];
+        
+     
 
         if (isset($requestData['firstname'])) {
             $firstname = $requestData['firstname'];
@@ -91,19 +92,18 @@ class UserController extends AbstractController
                 $invalidData[] = 'firstname';
             }
             // Validate firstname length
-            if (strlen($firstname) > 20) {
+            if (strlen($firstname) > 60 || strlen($firstname) < 1) {
                 $invalidData[] = 'firstname';
             }
         }
 
         if (isset($requestData['lastname'])) {
             $lastname = $requestData['lastname'];
-            // Validate lastname format
             if (!preg_match('/^[a-zA-Z\s]+$/', $lastname)) {
                 $invalidData[] = 'lastname';
             }
             // Validate lastname length
-            if (strlen($lastname) > 20) {
+            if (strlen($lastname) > 60 ||strlen($lastname) < 1 ) {
                 $invalidData[] = 'lastname';
             }
         }
@@ -111,26 +111,22 @@ class UserController extends AbstractController
         if (isset($requestData['sexe'])) {
             $sexe = $requestData['sexe'];
             if ($sexe != 0 && $sexe != 1) {
-                return $this->json([
-                    'error' => true,
-                    'message' => 'La valeur du champ sexe est invalide. Les valeurs autorisées sont 0 pour Femme, 1 pour Homme.',
-                ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+                $invalidData = 'sexe';
+                
             }
         }
 
         if (isset($requestData['tel'])) {
             $tel = $requestData['tel'];
             // Validate tel requirements
-            if (!preg_match('/^06[0-9]{8}$/', $tel)) {
-                return $this->json([
-                    'error' => true,
-                    'message' => 'Le format du numéro de téléphone est invalide',
-                ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+            if (!preg_match('/^0[6-7][0-9]{8}$/', $tel)) {
+                $invalidData = 'tel';
             }
 
             // Check if phone number is already used
             $existingUser = $this->repository->findOneBy(['tel' => $tel]);
             if ($existingUser) {
+
                 return $this->json([
                     'error' => true,
                     'message' => 'Conflit de données. Le numéro de téléphone est déjà utilisé par un autre utilisateur.',
@@ -138,11 +134,12 @@ class UserController extends AbstractController
             }
         }
 
+        // dd($invalidData);
         if (!empty($invalidData)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Les données fournies sont invalides ou incomplètes.',
-            ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
+                'message' => 'Erreur de validation des données.',
+            ], JsonResponse:: HTTP_UNPROCESSABLE_ENTITY);
         }
 
         if (isset($requestData['firstname'])) {

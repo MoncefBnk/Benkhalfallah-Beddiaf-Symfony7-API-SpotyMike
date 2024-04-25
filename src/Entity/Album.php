@@ -16,20 +16,18 @@ class Album
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 90)]
-    private ?string $idAlbum = null;
-
     #[ORM\Column(length: 95)]
-    private ?string $nom = null;
+    private ?string $title = null;
 
     #[ORM\Column(length: 20)]
-    private ?string $categ = null;
+    private ?string $categ = null; 
 
     #[ORM\Column(length: 125)]
     private ?string $cover = null;
 
-    #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $year = null;
+    //add visibility
+    #[ORM\Column]
+    private ?string $visibility = '0';
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createAt = null;
@@ -53,26 +51,15 @@ class Album
         return $this->id;
     }
 
-    public function getIdAlbum(): ?string
+
+    public function getTitle(): ?string
     {
-        return $this->idAlbum;
+        return $this->title;
     }
 
-    public function setIdAlbum(string $idAlbum): static
+    public function setTitle(string $title): static
     {
-        $this->idAlbum = $idAlbum;
-
-        return $this;
-    }
-
-    public function getNom(): ?string
-    {
-        return $this->nom;
-    }
-
-    public function setNom(string $nom): static
-    {
-        $this->nom = $nom;
+        $this->title = $title;
 
         return $this;
     }
@@ -89,6 +76,18 @@ class Album
         return $this;
     }
 
+    public function getVisibility(): ?string
+    {
+        return $this->visibility;
+    }   
+
+    public function setVisibility(string $visibility): static
+    {
+        $this->visibility = $visibility;
+
+        return $this;
+    }
+
     public function getCover(): ?string
     {
         return $this->cover;
@@ -97,18 +96,6 @@ class Album
     public function setCover(string $cover): static
     {
         $this->cover = $cover;
-
-        return $this;
-    }
-
-    public function getYear(): ?\DateTimeInterface
-    {
-        return $this->year;
-    }
-
-    public function setYear(\DateTimeInterface $year): static
-    {
-        $this->year = $year;
 
         return $this;
     }
@@ -183,15 +170,15 @@ class Album
     {
         $songs = [];
         foreach ($this->getSongIdSong() as $song) {
-            $songs[] = $song->songSerializer();
+            $songs[] = $song->songSerializerForAlbum();
         }
 
         $artist = $this->getArtistUserIdUser();
-        $year = $this->getYear();
+        $year = $this->getCreateAt();
         $formatedYear = $year ? $year->format('Y') : null;
 
         $label = null;
-        $labelHasArtist = $this->getArtistUserIdUser()->getLabelHasArtist()->filter(function($labelHasArtist) use ($year) {
+        $labelHasArtist = $artist->getLabelHasArtist()->filter(function($labelHasArtist) use ($year) {
             $joinedAt = $labelHasArtist->getJoinedAt();
             $leftAt = $labelHasArtist->getLeftAt();
 
@@ -204,13 +191,15 @@ class Album
         $createdAt = $this->getCreateAt() ? $this->getCreateAt()->format('Y-m-d') : null;
         return [
             'id' => strval($this->getId()),
-            'nom' => $this->getNom(),
+            'nom' => $this->getTitle(),
             'categ' => $this->getCateg(),
             'label' => $label,
             'cover' => $this->getCover(),
             'year' => $formatedYear,
             'createdAt' => $createdAt,
             'songs' => $songs,
+            'artist' => $artist->artistAlbumSerializer(),
+
         ];
     }
 }

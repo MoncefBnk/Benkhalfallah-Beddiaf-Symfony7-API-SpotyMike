@@ -171,35 +171,6 @@ class LoginController extends AbstractController
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         } // 406 Bad Request
 
-        $invalidData = [];
-
-
-        if (isset($requestData['firstname']) && strlen($requestData['firstname']) > 55) {
-            $invalidData[] = 'firstname';
-        }
-
-        if (isset($requestData['lastname']) && strlen($requestData['lastname']) > 55) {
-            $invalidData[] = 'lastname';
-        }
-
-        if (isset($requestData['email']) && strlen($requestData['email']) > 80) {
-            $invalidData[] = 'email';
-        }
-        if (isset($requestData['password']) && strlen($requestData['password']) > 30) {
-            $invalidData[] = 'password';
-        }
-
-        if (isset($requestData['tel']) && strlen($requestData['tel']) > 15) {
-            $invalidData[] = 'tel';
-        }
-
-        if (!empty($invalidData)) {
-            return $this->json([
-                'error' => true,
-                'message' => 'Une ou plusieurs donnée sont erronées',
-            ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
-        }
-
         $password = $requestData['password'] ?? null;
         $email = $requestData['email'] ?? null;
         $tel = $requestData['tel'] ?? null;
@@ -235,6 +206,40 @@ class LoginController extends AbstractController
                 'message' => 'La valeur du champ sexe est invalide. Les valeurs autorisées sont 0 pour Femme, 1 pour Homme.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
+        
+        $invalidData = [];
+
+
+        if (isset($requestData['firstname'])) {
+            $firstname = $requestData['firstname'];
+            // Validate firstname format
+            if (!preg_match('/^[a-zA-Z\s]+$/', $firstname)) {
+                $invalidData[] = 'firstname';
+            }
+            // Validate firstname length
+            if (strlen($firstname) > 60 || strlen($firstname) < 1) {
+                $invalidData[] = 'firstname';
+            }
+        }
+
+        if (isset($requestData['lastname'])) {
+            $lastname = $requestData['lastname'];
+            if (!preg_match('/^[a-zA-Z\s]+$/', $lastname)) {
+                $invalidData[] = 'lastname';
+            }
+            // Validate lastname length
+            if (strlen($lastname) > 60 ||strlen($lastname) < 1 ) {
+                $invalidData[] = 'lastname';
+            }
+        }
+        if (!empty($invalidData)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Une ou plusieurs donnée sont erronées',
+            ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
+        }
+
+       
         $user = new User();
         $hash = $passwordHash->hashPassword($user, $password);
         $user->setFirstname($requestData['firstname'] ?? null)
@@ -260,7 +265,7 @@ class LoginController extends AbstractController
     }
 
     #[Route('/password-lost', name: 'app_reset_password', methods: ['POST'])]
-    // it requires email then if it exists in the database it will send an email to the user with a link to reset the password
+    
     public function resetPassword(Request $request, JWTTokenManagerInterface $JWTManager): JsonResponse
     {
         
