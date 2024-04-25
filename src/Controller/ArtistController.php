@@ -312,6 +312,7 @@ class ArtistController extends AbstractController
                     file_put_contents($chemin . '/avatar.' . $fileFormat[1], $file);
                     $artist->setAvatar($chemin . '/avatar.' . $fileFormat[1]);
                     $this->entityManager->persist($artist);
+                    //rajouter persist label 
                     $this->entityManager->flush();
                 }
             }

@@ -104,4 +104,16 @@ class Featuring
             'createdAt' => $this->getIdSong()->getCreateAt()->format('Y-m-d'),
         ];
     }
+
+    public function featuringSerializerForAlbum()
+    {
+        $artists = [];
+        foreach ($this->getIdArtist() as $artist) {
+            $artists[] = $artist->artistAllSerializer();
+        }
+
+        return [
+            'artist' => $artists,
+        ];
+    }
 }

@@ -170,7 +170,7 @@ class Album
     {
         $songs = [];
         foreach ($this->getSongIdSong() as $song) {
-            $songs[] = $song->songSerializer();
+            $songs[] = $song->songSerializerForAlbum();
         }
 
         $artist = $this->getArtistUserIdUser();
@@ -198,6 +198,8 @@ class Album
             'year' => $formatedYear,
             'createdAt' => $createdAt,
             'songs' => $songs,
+            'artist' => $artist->artistAlbumSerializer(),
+
         ];
     }
 }

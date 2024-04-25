@@ -28,7 +28,7 @@ class AlbumController extends AbstractController
 
     }
 
-    #[Route('/album/all', name: 'app_get_all_albums', methods: ['GET'])]
+    #[Route('/albums', name: 'app_get_all_albums', methods: ['GET'])]
     public function getAllAlbums(Request $request): JsonResponse
     {
 
@@ -52,10 +52,51 @@ class AlbumController extends AbstractController
             $serializedAlbums[] = $album->albumSerializer();
         }
 
+
+
+        $totalAlbums = count($serializedAlbums);
+        // Pagination
+        $limit = $request->query->get('limit', 5);
+        $page =  $request->query->get('page');
+
+
+
+        if (!is_numeric($limit) || $limit <= 0) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le paramètre de pagination est invalide. Veuillez fournir un numéro de page valide',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        if (empty($page) ||!is_numeric($page) || $page <= 0) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le paramètre de pagination est invalide. Veuillez fournir un numéro de page valide',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+
+
+        $offset = ($page - 1) * $limit;
+        $paginatedAlbums = array_slice($serializedAlbums, $offset, $limit);
+
+        if (empty($paginatedAlbums)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Aucun album trouvé pour la page demandée.',
+            ], JsonResponse::HTTP_NOT_FOUND);
+        }
+
         return $this->json([
-            'albums' => $serializedAlbums,
-            'message' => 'Tous les albums ont été récupérés avec succès!',
-            'path' => 'src/Controller/AlbumController.php',
+            'error' => false,
+            'albums' => $paginatedAlbums,
+            'pagination' => [
+                'currentPage' => $page,
+                'totalPages' => ceil($totalAlbums / $limit),
+                'totalAlbums' => $totalAlbums,
+            ],
+            
+            
         ]);
     }
 

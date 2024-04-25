@@ -281,10 +281,7 @@ class Artist
     
 
       //get all the featurings where this artist is featured
-        $featurings = [];
-        foreach ($this->getFeaturings() as $featuring) {
-            $featurings[] = $featuring->featuringSerializer();
-        }
+
 
 
         $createdAt = $this->getCreatedAt() ? $this->getCreatedAt()->format('Y-m-d') : null;
@@ -300,6 +297,28 @@ class Artist
             'albums' => $this->albums->map(function($album) {
                 return $album->albumSerializer();
             }),
+        ];
+    }
+    public function artistAlbumSerializer()
+    {
+        $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('d-m-Y') : null;
+    
+
+      //get all the featurings where this artist is featured
+
+
+
+        $createdAt = $this->getCreatedAt() ? $this->getCreatedAt()->format('Y-m-d') : null;
+        $sexe = $this->getUserIdUser()->getSexe() === '1' ? 'Homme' : 'Femme';
+        return [
+            'firstname' => $this->getUserIdUser()->getFirstname(),
+            'lastname' => $this->getUserIdUser()->getLastname(),
+            'fullname' => $this->getFullname(),
+            'avatar' => $this->getAvatar(), 
+            'followers' => $this->getFollowers(),
+            'sexe' => $sexe,
+            'dateBirth'=>$dateBirthFormatted,  
+            'createdAt' => $createdAt,    
         ];
     }
     public function artistSearchSerializer()
@@ -322,10 +341,10 @@ class Artist
             'fullname' => $this->getFullname(),
             'avatar' => $this->getAvatar(), 
             'followers' => $this->getFollowers(),
-            'featurings' => $featurings,
             'sexe' => $sexe,
             'dateBirth'=>$dateBirthFormatted,  
             'Artist.CreatedAt' => $createdAt,    
+            'featurings' => $featurings,
             'albums' => $this->albums->map(function($album) {
                 return $album->albumSerializer();
             }),
