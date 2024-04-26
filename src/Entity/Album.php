@@ -166,11 +166,47 @@ class Album
         return $this;
     }
 
-    public function albumSerializer()
+    public function albumAllSerializer()
     {
         $songs = [];
         foreach ($this->getSongIdSong() as $song) {
             $songs[] = $song->songSerializerForAlbum();
+        }
+
+        $artist = $this->getArtistUserIdUser();
+        $year = $this->getCreateAt();
+        $formatedYear = $year ? $year->format('Y') : null;
+
+        $label = null;
+        $labelHasArtist = $artist->getLabelHasArtist()->filter(function($labelHasArtist) use ($year) {
+            $joinedAt = $labelHasArtist->getJoinedAt();
+            $leftAt = $labelHasArtist->getLeftAt();
+
+            return $joinedAt<= $year && ($leftAt === null || $leftAt > $year);
+        })->first();
+
+        if ($labelHasArtist) {
+            $label = $labelHasArtist->getIdLabel()->getLabelName();
+        }
+        $createdAt = $this->getCreateAt() ? $this->getCreateAt()->format('Y-m-d') : null;
+        return [
+            'id' => strval($this->getId()),
+            'nom' => $this->getTitle(),
+            'categ' => $this->getCateg(),
+            'label' => $label,
+            'cover' => $this->getCover(),
+            'year' => $formatedYear,
+            'createdAt' => $createdAt,
+            'songs' => $songs,
+            'artist' => $artist->artistAlbumSerializer(),
+
+        ];
+    }
+    public function albumSerializer()
+    {
+        $songs = [];
+        foreach ($this->getSongIdSong() as $song) {
+            $songs[] = $song->songSerializerForOneAlbum();
         }
 
         $artist = $this->getArtistUserIdUser();

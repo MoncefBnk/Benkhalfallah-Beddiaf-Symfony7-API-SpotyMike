@@ -299,15 +299,9 @@ class Artist
             }),
         ];
     }
-    public function artistAlbumSerializer()
+    public function artistFeaturingSerializer()
     {
         $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('d-m-Y') : null;
-    
-
-      //get all the featurings where this artist is featured
-
-
-
         $createdAt = $this->getCreatedAt() ? $this->getCreatedAt()->format('Y-m-d') : null;
         $sexe = $this->getUserIdUser()->getSexe() === '1' ? 'Homme' : 'Femme';
         return [
@@ -315,7 +309,26 @@ class Artist
             'lastname' => $this->getUserIdUser()->getLastname(),
             'fullname' => $this->getFullname(),
             'avatar' => $this->getAvatar(), 
-            'followers' => $this->getFollowers(),
+            'follower' => $this->getFollowers(),
+            'cover' => $this->getAvatar(), 
+            'sexe' => $sexe,
+            'dateBirth'=>$dateBirthFormatted,  
+            'Artist.createdAt' => $createdAt,    
+        ];
+    }
+
+    public function artistAlbumSerializer()
+    {
+        $dateBirthFormatted = $this->getUserIdUser()->getDateBirth() ? $this->getUserIdUser()->getDateBirth()->format('d-m-Y') : null;
+        $createdAt = $this->getCreatedAt() ? $this->getCreatedAt()->format('Y-m-d') : null;
+        $sexe = $this->getUserIdUser()->getSexe() === '1' ? 'Homme' : 'Femme';
+        return [
+            'firstname' => $this->getUserIdUser()->getFirstname(),
+            'lastname' => $this->getUserIdUser()->getLastname(),
+            'fullname' => $this->getFullname(),
+            'avatar' => $this->getAvatar(), 
+            'follower' => $this->getFollowers(),
+            'cover' => $this->getAvatar(), 
             'sexe' => $sexe,
             'dateBirth'=>$dateBirthFormatted,  
             'createdAt' => $createdAt,    
@@ -331,7 +344,6 @@ class Artist
         foreach ($this->getFeaturings() as $featuring) {
             $featurings[] = $featuring->featuringSerializer();
         }
-
 
         $createdAt = $this->getCreatedAt() ? $this->getCreatedAt()->format('Y-m-d') : null;
         $sexe = $this->getUserIdUser()->getSexe() === '1' ? 'Homme' : 'Femme';

@@ -28,6 +28,48 @@ class AlbumController extends AbstractController
 
     }
 
+
+    //get album by id
+    #[Route('/album/{id}', name: 'app_get_album', methods: ['GET'])]
+    public function getAlbum(Request $request, int $id): JsonResponse
+    {
+
+        $dataMiddellware = $this->tokenVerifier->checkToken($request);
+        if (gettype($dataMiddellware) == 'boolean') {
+            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
+        }
+
+        if (!$dataMiddellware) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        //if id is missing 
+        if (!$id) {
+            return $this->json([
+                'error' => true,
+                'message' => 'l\'id de l\'album est obligatoire pour cette requête',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+        $album = $this->repository->find($id);
+        
+        if (!$album || ($album->getVisibility() == '0' && $album->getArtistUserIdUser()->getUser_idUser() !== $dataMiddellware->getId())) {
+            return $this->json([
+                'error' => true,
+                'message' => 'L\'album non trouvé. Vérifiez les informations fournies et réessayez.',
+            ], JsonResponse::HTTP_NOT_FOUND);
+        }
+
+        $serializedAlbum = $album->albumSerializer();
+
+        return $this->json([
+            'error' => false,
+            'album' => $serializedAlbum,
+        ]);
+    }
+
     #[Route('/albums', name: 'app_get_all_albums', methods: ['GET'])]
     public function getAllAlbums(Request $request): JsonResponse
     {
@@ -49,7 +91,7 @@ class AlbumController extends AbstractController
 
         $serializedAlbums = [];
         foreach ($albums as $album) {
-            $serializedAlbums[] = $album->albumSerializer();
+            $serializedAlbums[] = $album->albumAllSerializer();
         }
 
 
@@ -91,7 +133,7 @@ class AlbumController extends AbstractController
             'error' => false,
             'albums' => $paginatedAlbums,
             'pagination' => [
-                'currentPage' => $page,
+                'currentPage' => (int)$page,
                 'totalPages' => ceil($totalAlbums / $limit),
                 'totalAlbums' => $totalAlbums,
             ],
@@ -252,6 +294,9 @@ class AlbumController extends AbstractController
                 // }
 
                 $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();
+                if (!file_exists($chemin)) {
+                    mkdir($chemin);
+                } 
                 file_put_contents($chemin . '/cover.' . $fileFormat[1], $file);
                 $album->setCover($chemin . '/cover.' . $fileFormat[1]);
             }

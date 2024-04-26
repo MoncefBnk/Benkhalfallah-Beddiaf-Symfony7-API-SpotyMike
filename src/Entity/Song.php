@@ -195,27 +195,42 @@ class Song
     }
     public function songSerializerForAlbum()
     {
-
-
       //get artist all serializer from featuring table 
         $featuring = [];
         foreach ($this->getFeaturing() as $feat) {
 
             foreach ($feat->getIdArtist() as $artist) {
-            $featuring[] = $artist->artistAlbumSerializer();
+            $featuring[] = $artist->artistFeaturingSerializer();
             }
 
         }
 
-      
+        return [
+            'id' => strval($this->getId()),
+            'title' => $this->getTitle(),
+            'cover' => $this->getCover(),
+            'featuring' => $featuring, 
+            'createdAt' => $this->getCreateAt()->format('Y-m-d')
+        ];
+    }
+    public function songSerializerForOneAlbum()
+    {
+      //get artist all serializer from featuring table 
+        $featuring = [];
+        foreach ($this->getFeaturing() as $feat) {
 
+            foreach ($feat->getIdArtist() as $artist) {
+            $featuring[] = $artist->artistFeaturingSerializer();
+            }
+
+        }
         // get artist from album
-
         $createdAt = $this->getCreateAt() ? $this->getCreateAt()->format('Y-m-d') : null;
         return [
             'id' => strval($this->getId()),
             'title' => $this->getTitle(),
             'cover' => $this->getCover(),
+            'createdAt' => $createdAt,
             'featuring' => $featuring,
             
         ];

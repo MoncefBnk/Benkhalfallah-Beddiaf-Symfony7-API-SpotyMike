@@ -308,14 +308,22 @@ class ArtistController extends AbstractController
                         ], JsonResponse::HTTP_BAD_REQUEST);
                     }
                     
-                    $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();                    
+                    $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();
+                    //check if path exists
+                    if (!file_exists($chemin)) {
+                        mkdir($chemin);
+                    }              
                     file_put_contents($chemin . '/avatar.' . $fileFormat[1], $file);
                     $artist->setAvatar($chemin . '/avatar.' . $fileFormat[1]);
                     $this->entityManager->persist($artist);
-                    //rajouter persist label 
-                    $this->entityManager->flush();
+
+
+                    
                 }
             }
+
+            $this->entityManager->flush();
+
             return $this->json([
                 'success' => true,
                 'message' => 'Les informations de l\'artiste ont été mises à jour avec succès.',
@@ -452,7 +460,9 @@ class ArtistController extends AbstractController
                     // }
 
                     $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();
-                    mkdir($chemin);
+                    if (!file_exists($chemin)) {
+                        mkdir($chemin);
+                    }
                     file_put_contents($chemin . '/avatar.' . $fileFormat[1], $file);
                     $artist->setAvatar($chemin . '/avatar.' . $fileFormat[1]);
                 }
@@ -469,104 +479,6 @@ class ArtistController extends AbstractController
             ], JsonResponse::HTTP_CREATED); // 201 Created
         }
     }
-
-    // #[Route('/artist', name: 'app_update_artist', methods: ['PUT'])]
-    // public function updateArtist(Request $request): JsonResponse
-    // {
-    //     $requestData = $request->request->all();
-
-    //     if ($request->headers->get('content-type') === 'application/json') {
-    //         $requestData = json_decode($request->getContent(), true);
-    //     }
-
-    //     $artistId = $requestData['id'] ?? null;
-
-    //     if (!$artistId) {
-    //         return $this->json([
-    //             'message' => 'Missing artist ID in request body',
-    //         ], JsonResponse::HTTP_BAD_REQUEST);
-    //     }
-
-    //     $artist = $this->entityManager->getRepository(Artist::class)->find($artistId);
-
-    //     if (!$artist) {
-    //         return $this->json([
-    //             'message' => 'Artist not found',
-    //         ], JsonResponse::HTTP_NOT_FOUND);
-    //     }
-
-    //     $requestData = $request->request->all();
-
-    //     if ($request->headers->get('content-type') === 'application/json') {
-    //         $requestData = json_decode($request->getContent(), true);
-    //     }
-
-    //     $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
-    //     if ($existingArtistWithFullname) {
-    //         throw new BadRequestHttpException("Un compte utilisant ce nom d'artiste est déjà enregistré");
-    //     }
-
-    //     $requiredFields = ['fullname', 'label'];
-    //     $missingFields = [];
-
-    //     foreach ($requiredFields as $field) {
-    //         if (isset($requestData[$field])) {
-    //             if (empty($requestData[$field])) {
-    //                 $missingFields[] = $field;
-    //             }
-    //         }
-    //     }
-
-    //     if (!empty($missingFields)) {
-    //         return $this->json([
-    //             'message' => 'Une ou plusieurs données obligatoires sont manquantes : ' . $missingFields,
-    //         ], JsonResponse::HTTP_BAD_REQUEST);
-    //     }
-
-    //     $invalidData = [];
-
-    //     if (isset($requestData['fullname']) && strlen($requestData['fullname']) > 90) {
-    //         $invalidData[] = 'fullname';
-    //     }
-
-    //     if (isset($requestData['label']) && strlen($requestData['label']) > 55) {
-    //         $invalidData[] = 'label';
-    //     }
-
-    //     if (isset($requestData['description']) && strlen($requestData['description']) > 55) {
-    //         $invalidData[] = 'description';
-    //     }
-    //     if (!empty($invalidData)) {
-    //         return $this->json([
-    //             'message' => 'Une ou plusieurs données sont erronées',
-    //             'data' => $invalidData,
-    //         ], JsonResponse::HTTP_CONFLICT);
-    //     }
-
-    //     if (isset($requestData['fullname'])) {
-    //         $existingArtistWithFullname = $this->repository->findOneBy(['fullname' => $requestData['fullname']]);
-    //         if ($existingArtistWithFullname) {
-    //             throw new BadRequestHttpException('An artist with this name already exists');
-    //         } else {
-
-    //             $artist->setFullname($requestData['fullname']);
-    //         }
-    //     }
-    //     if (isset($requestData['label'])) {
-    //         $artist->setLabel($requestData['label']);
-    //     }
-    //     if (isset($requestData['description'])) {
-    //         $artist->setDescription($requestData['description']);
-    //     }
-    //     $this->entityManager->persist($artist);
-    //     $this->entityManager->flush();
-
-    //     return $this->json([
-    //         'artist' => $artist->artistSerializer(),
-    //         'message' => 'Artist updated successfully!',
-    //         'path' => 'src/Controller/ArtistController.php',
-    //     ]);
-    // }
 
 
     //delete artist of current authenticated user
