@@ -28,7 +28,7 @@ class Song
     private ?string $cover = null;
 
     #[ORM\Column]
-    private ?bool $visibility = true;
+    private ?string $visibility = '0';
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createAt = null;
@@ -191,8 +191,6 @@ class Song
             'title' => $this->getTitle(),
             'cover' => $this->getCover(),
             'createdAt' => $createdAt,
-
-            
         ];
     }
     public function songSerializerForAlbum()
