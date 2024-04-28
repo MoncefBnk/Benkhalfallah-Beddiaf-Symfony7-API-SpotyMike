@@ -22,7 +22,7 @@ class Album
     #[ORM\Column(length: 20)]
     private ?string $categ = null; 
 
-    #[ORM\Column(length: 125)]
+    #[ORM\Column]
     private ?string $cover = null;
 
     //add visibility

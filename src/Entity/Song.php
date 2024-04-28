@@ -24,7 +24,7 @@ class Song
     #[ORM\Column(length: 125)]
     private ?string $stream = null;
 
-    #[ORM\Column(length: 125)]
+    #[ORM\Column]
     private ?string $cover = null;
 
     #[ORM\Column]

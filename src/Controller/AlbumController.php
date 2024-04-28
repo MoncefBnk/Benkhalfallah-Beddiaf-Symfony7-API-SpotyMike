@@ -188,7 +188,7 @@ class AlbumController extends AbstractController
                 }
             }
         }
-        if (!empty($missingFields) && !empty($invalidKeys)) {
+        if (!empty($missingFields) || !empty($invalidKeys)) {
             return $this->json([
                 'error' => true,
                 'message' => 'Un ou plusieurs champs requis sont vides dans la requête : ',
@@ -241,11 +241,11 @@ class AlbumController extends AbstractController
         if (!empty($invalidCategories)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Les catégories suivantes ne sont pas autorisées : ' . implode(', ', $invalidCategories),
+                'message' => 'Les categorie ciblée sont invalide.',
             ], JsonResponse::HTTP_BAD_REQUEST);
         }
         //categories doit être une liste JSON de chaînes de caractères
-        if (!is_array($categoriesParsed)) { 
+        if (empty($categoriesParsed)) { 
             $invalidData[] = 'categories';
         }
 
@@ -277,13 +277,8 @@ class AlbumController extends AbstractController
                     ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
                 }
                 $file = base64_decode($explodeData[1]);
-                //check if the decode is correct 
-                if ($file === false) {
-                    return $this->json([
-                        'error' => true,
-                        'message' => 'Le serveur ne peut pas décoder le contenu base64 en fichier binaire.',
-                    ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
-                }
+
+               
 
                 //check file size should be between 1Mb and 7Mb
                 // if (strlen($file) < 1000000 || strlen($file) > 7000000) {
@@ -293,11 +288,20 @@ class AlbumController extends AbstractController
                 //     ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
                 // }
 
-                $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();
+                try {
+                    $validationimd = getimagesizefromstring($file);
+                } catch (\Exception $e) {
+                    return $this->json([
+                        'error' => true,
+                        'message' => 'Le serveur ne peut pas décoder le contenu base64 en fichier binaire.',
+                    ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                }
+                $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail() . '/' . $requestData['title'] ;
                 if (!file_exists($chemin)) {
                     mkdir($chemin);
                 } 
-                file_put_contents($chemin . '/cover.' . $fileFormat[1], $file);
+
+                file_put_contents($chemin. '/cover.' . $fileFormat[1], $file);
                 $album->setCover($chemin . '/cover.' . $fileFormat[1]);
             }
         }
@@ -312,9 +316,9 @@ class AlbumController extends AbstractController
         $this->entityManager->flush();
 
         return $this->json([
-            'album' => $album->albumSerializer(),
-            'message' => "Album ajouté avec succès",
-            'path' => 'src/Controller/AlbumController.php',
+            'message' => "Album créé avec succès.",
+            'id' => $album->getId(),
+            
         ], Response::HTTP_CREATED);
     }
 

@@ -271,15 +271,13 @@ class ArtistController extends AbstractController
                 $labelHasArtist->setIdLabel($label);
                 $labelHasArtist->setJoinedAt(new DateTime());
                 $labelHasArtist->setLeftAt(null);
-                $this->entityManager->persist($labelHasArtist);
-                $this->entityManager->flush();
             }
 
             if (isset($requestData['description'])) {
                 $artist->setDescription($requestData['description'] ?? null);
             }
-            $this->entityManager->persist($artist);
-            $this->entityManager->flush();
+            
+
 
             if (isset($requestData['avatar'])) {
                 $parameters = $request->getContent();
@@ -300,12 +298,22 @@ class ArtistController extends AbstractController
                         ], JsonResponse::HTTP_BAD_REQUEST);
                     }
                     $file = base64_decode($explodeData[1]);
-                    //check if the decode is correct 
-                    if ($file === false) {
+
+                     //check file size should be between 1Mb and 7Mb
+                    // if (strlen($file) < 1000000 || strlen($file) > 7000000) {
+                    //     return $this->json([
+                    //         'error' => true,
+                    //         'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
+                    //     ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                    // }
+
+                    try {
+                        $validationimd = getimagesizefromstring($file);
+                    } catch (\Exception $e) {
                         return $this->json([
                             'error' => true,
-                            'message' => 'Erreur lors du décodage de l\'image.',
-                        ], JsonResponse::HTTP_BAD_REQUEST);
+                            'message' => 'Le serveur ne peut pas décoder le contenu base64 en fichier binaire.',
+                        ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
                     }
                     
                     $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();
@@ -316,12 +324,11 @@ class ArtistController extends AbstractController
                     file_put_contents($chemin . '/avatar.' . $fileFormat[1], $file);
                     $artist->setAvatar($chemin . '/avatar.' . $fileFormat[1]);
                     $this->entityManager->persist($artist);
-
-
-                    
                 }
             }
-
+            
+            $this->entityManager->persist($artist);
+            $this->entityManager->persist($labelHasArtist);
             $this->entityManager->flush();
 
             return $this->json([
@@ -412,6 +419,54 @@ class ArtistController extends AbstractController
             }
 
             $artist = new Artist();
+            
+
+            if (isset($requestData['avatar'])) {
+                $parameters = $request->getContent();
+                parse_str($parameters, $data);
+
+                $explodeData = explode(",", $data['avatar']);
+                if (count($explodeData) == 2) {
+
+
+                    $fileFormat = explode(';', $explodeData[0]);
+
+                    $fileFormat = explode('/', $fileFormat[0]);
+
+                    if ($fileFormat[1] !== 'png' && $fileFormat[1] !== 'jpeg') {
+                        return $this->json([
+                            'error' => true,
+                            'message' => 'Erreur sur le format du fichier qui n\'est pas pris en compte.',
+                        ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                    }
+                    $file = base64_decode($explodeData[1]);
+
+                    //check file size should be between 1Mb and 7Mb
+                    // if (strlen($file) < 1000000 || strlen($file) > 7000000) {
+                    //     return $this->json([
+                    //         'error' => true,
+                    //         'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
+                    //     ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                    // }
+
+                    try {
+                        $validationimd = getimagesizefromstring($file);
+                    } catch (\Exception $e) {
+                        return $this->json([
+                            'error' => true,
+                            'message' => 'Le serveur ne peut pas décoder le contenu base64 en fichier binaire.',
+                        ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                    }
+
+                    $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();
+                    if (!file_exists($chemin)) {
+                        mkdir($chemin);
+                    }
+                    file_put_contents($chemin . '/avatar.' . $fileFormat[1], $file);
+                    $artist->setAvatar($chemin . '/avatar.' . $fileFormat[1]);
+                }
+            }
+
             $artist->setUserIdUser($user);
             $artist->setFullname($requestData['fullname']);
             $artist->setDescription($requestData['description'] ?? null);
@@ -423,50 +478,6 @@ class ArtistController extends AbstractController
             $labelHasArtist->setIdLabel($label);
             $labelHasArtist->setJoinedAt(new DateTime());
             $labelHasArtist->setLeftAt(null);
-
-            if (isset($requestData['avatar'])) {
-                $parameters = $request->getContent();
-                parse_str($parameters, $data);
-
-                $explodeData = explode(",", $data['avatar']);
-                if (count($explodeData) == 2) {
-
-                    //check the file format
-                    $fileFormat = explode(';', $explodeData[0]);
-                    //assign the file format to the variable
-                    $fileFormat = explode('/', $fileFormat[0]);
-                    //if not png or jpeg return error
-                    if ($fileFormat[1] !== 'png' && $fileFormat[1] !== 'jpeg') {
-                        return $this->json([
-                            'error' => true,
-                            'message' => 'Erreur sur le format du fichier qui n\'est pas pris en compte.',
-                        ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
-                    }
-                    $file = base64_decode($explodeData[1]);
-                    //check if the decode is correct 
-                    if ($file === false) {
-                        return $this->json([
-                            'error' => true,
-                            'message' => 'Le serveur ne peut pas décoder le contenu base64 en fichier binaire.',
-                        ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
-                    }
-
-                    //check file size should be between 1Mb and 7Mb
-                    // if (strlen($file) < 1000000 || strlen($file) > 7000000) {
-                    //     return $this->json([
-                    //         'error' => true,
-                    //         'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
-                    //     ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
-                    // }
-
-                    $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();
-                    if (!file_exists($chemin)) {
-                        mkdir($chemin);
-                    }
-                    file_put_contents($chemin . '/avatar.' . $fileFormat[1], $file);
-                    $artist->setAvatar($chemin . '/avatar.' . $fileFormat[1]);
-                }
-            }
             $this->entityManager->persist($labelHasArtist);
             $this->entityManager->persist($artist);
             $this->entityManager->flush();
