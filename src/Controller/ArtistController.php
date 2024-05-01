@@ -61,10 +61,10 @@ class ArtistController extends AbstractController
         }
 
         //full name validation
-        if (!preg_match('/^[a-zA-Z\s]+$/', $fullname)) {
+        if (!preg_match('/^[a-zA-Z0-9\sÀ-ÿ]{1,30}$/', $fullname)) {
             return $this->json([
-                'error' => true,
-                'message' => 'Le format du nom d\'artiste fourni est invalide.',
+            'error' => true,
+            'message' => 'Le format du nom d\'artiste fourni est invalide.',
             ], JsonResponse::HTTP_BAD_REQUEST);
         }
 
@@ -210,7 +210,7 @@ class ArtistController extends AbstractController
             if (isset($requestData['fullname'])) {
                 $fullname = $requestData['fullname'];
                 // Validate lastname format
-                if (!preg_match('/^[a-zA-Z\s]+$/', $fullname)) {
+                if (!preg_match('/^[a-zA-Z0-9\sÀ-ÿ]{1,30}$/', $fullname)) {
                     $invalidData[] = 'fullname';
                 }
                 if (strlen($fullname) > 20) {

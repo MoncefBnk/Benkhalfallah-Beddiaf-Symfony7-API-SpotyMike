@@ -176,10 +176,10 @@ class LoginController extends AbstractController
         $tel = $requestData['tel'] ?? null;
 
         //validate tel requirements 
-        if (!preg_match('/^0[6-7][0-9]{8}$/', $tel)) {
+        if (!preg_match('/^0[1-9][0-9]{8}$/', $tel)) {
             return $this->json([
-                'error' => true,
-                'message' => 'Le format du numéro de téléphone est invalide.',
+            'error' => true,
+            'message' => 'Le format du numéro de téléphone est invalide.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
 
@@ -191,11 +191,13 @@ class LoginController extends AbstractController
                 'message' => 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre, un caractère spécial et avoir 8 caractères minimum.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
+        
         // Validate email format
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $emailFormat = '/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/';
+        if (!preg_match($emailFormat, $email)) {
             return $this->json([
-                'error' => true,
-                'message' => 'Le format de l\'email est invalide.',
+            'error' => true,
+            'message' => 'Le format de l\'email est invalide.',
             ], JsonResponse::HTTP_BAD_REQUEST); // 400 Bad Request
         }
         
@@ -213,7 +215,7 @@ class LoginController extends AbstractController
         if (isset($requestData['firstname'])) {
             $firstname = $requestData['firstname'];
             // Validate firstname format
-            if (!preg_match('/^[a-zA-Z\s]+$/', $firstname)) {
+            if (!preg_match('/^[a-zA-Z\sÀ-ÿ]+$/', $firstname)) {
                 $invalidData[] = 'firstname';
             }
             // Validate firstname length
@@ -224,7 +226,7 @@ class LoginController extends AbstractController
 
         if (isset($requestData['lastname'])) {
             $lastname = $requestData['lastname'];
-            if (!preg_match('/^[a-zA-Z\s]+$/', $lastname)) {
+            if (!preg_match('/^[a-zA-Z\sÀ-ÿ]+$/', $lastname)) {
                 $invalidData[] = 'lastname';
             }
             // Validate lastname length
