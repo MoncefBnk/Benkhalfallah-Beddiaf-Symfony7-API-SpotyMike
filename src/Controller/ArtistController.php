@@ -299,13 +299,13 @@ class ArtistController extends AbstractController
                     }
                     $file = base64_decode($explodeData[1]);
 
-                     //check file size should be between 1Mb and 7Mb
-                    // if (strlen($file) < 1000000 || strlen($file) > 7000000) {
-                    //     return $this->json([
-                    //         'error' => true,
-                    //         'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
-                    //     ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
-                    // }
+
+                    if (strlen($file) < 1000000 || strlen($file) > 7000000) {
+                        return $this->json([
+                            'error' => true,
+                            'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
+                        ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                    }
 
                     try {
                         $validationimd = getimagesizefromstring($file);
@@ -441,13 +441,13 @@ class ArtistController extends AbstractController
                     }
                     $file = base64_decode($explodeData[1]);
 
-                    //check file size should be between 1Mb and 7Mb
-                    // if (strlen($file) < 1000000 || strlen($file) > 7000000) {
-                    //     return $this->json([
-                    //         'error' => true,
-                    //         'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
-                    //     ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
-                    // }
+
+                    if (strlen($file) < 1000000 || strlen($file) > 7000000) {
+                        return $this->json([
+                            'error' => true,
+                            'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
+                        ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                    }
 
                     try {
                         $validationimd = getimagesizefromstring($file);
