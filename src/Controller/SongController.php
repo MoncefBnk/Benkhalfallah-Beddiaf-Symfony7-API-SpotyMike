@@ -11,80 +11,100 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Song;
 use App\Entity\Artist;
 use App\Entity\Featuring;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 class SongController extends AbstractController
 {
+    private $repository;
     private $entityManager;
+    private $tokenVerifier;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    public function __construct(TokenVerifierService $tokenVerifier, EntityManagerInterface $entityManager)
     {
+        $this->repository = $entityManager->getRepository(Song::class);
         $this->entityManager = $entityManager;
+        $this->tokenVerifier = $tokenVerifier;
     }
 
 
 
-    #[Route('/song', name: 'app_create_song', methods: ['POST'])]
-    public function createSong(Request $request): JsonResponse
+    #[Route('/album/{idAlbum}/song', name: 'app_create_song', methods: ['POST'])]
+    public function createSong(Request $request, string $idAlbum): JsonResponse
     {
+        dd( tmpfile()['uri']);
+        $dataMiddellware = $this->tokenVerifier->checkToken($request);
+        if (gettype($dataMiddellware) == 'boolean') {
+            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
+        }
+
+        if (!$dataMiddellware) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+        $user = $dataMiddellware;
+
         $requestData = $request->request->all();
 
         if ($request->headers->get('content-type') === 'application/json') {
             $requestData = json_decode($request->getContent(), true);
         }
 
-        $existingSongById = $this->entityManager->getRepository(Song::class)->findOneBy(['idSong' => $requestData['idSong']]);
-        if ($existingSongById) {
-            throw new BadRequestHttpException('Song with this idSong already exists');
+        $album = $this->entityManager->getRepository(Album::class)->find($idAlbum);
+        if (!$album) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Aucun album trouvé correspondant au nom fourni'
+            ], Response::HTTP_NOT_FOUND);
         }
 
-        // Check if title already exists
-        $existingSongByTitle = $this->entityManager->getRepository(Song::class)->findOneBy(['title' => $requestData['title']]);
-        if ($existingSongByTitle) {
-            throw new BadRequestHttpException('Song with this title already exists');
+        if ($album->getArtistUserIdUser()->getUserIdUser()->getId() !== $user->getId()) {
+            return $this->json(
+                [
+                    'error' => true,
+                    'message' => 'Vous n\'avez pas l\'autorisations pour accéder à cet album.'
+                ],
+                Response::HTTP_FORBIDDEN
+            );
+        }
+        
+        if (!isset($idAlbum)) {
+            return $this->json(
+                [
+                    'error' => true,
+                    'message' => 'Une ou plusieurs données obligatoire sont manquantes.'
+                ],
+                Response::HTTP_BAD_REQUEST
+            );
         }
 
-        // Validate required fields
-        if (!isset($requestData['idSong'], $requestData['title'])) {
-            return $this->json(['message' => 'Required fields are missing!'], 400);
-        }
+        //put data as static for test for id, title visibility 
+        $idSong = '1234567890';
+        $title = 'test';
+        $visibility = true;
+        $cover = 'cover';
+        $featuring = [1];
 
-        switch ($requestData) {
-            case 'idSong' && strlen($requestData['idSong']) > 90:
-                throw new BadRequestHttpException('idSong too long');
-            case 'title' && strlen($requestData['title']) > 255:
-                throw new BadRequestHttpException('Title too long');
-            case 'stream' && strlen($requestData['stream']) > 125:
-                throw new BadRequestHttpException('stream too long');
-            case 'cover' && strlen($requestData['cover']) > 125:
-                throw new BadRequestHttpException('Cover name too long');
-        }
 
         $song = new Song();
-        $song->setIdSong($requestData['idSong']);
-        $song->setTitle($requestData['title']);
-        $song->setStream($requestData['stream'] ?? null);
-        $song->setCover($requestData['cover'] ?? null);
-        $song->setVisibility($requestData['visibility'] ?? true);
+        $song->setIdSong($idSong);
+        $song->setTitle($title);
+        $song->setVisibility($visibility ?? true);
+        $song->setCover($cover);
         $song->setCreateAt(new \DateTimeImmutable());
-
-        $album = $this->entityManager->getRepository(Album::class)->find($requestData['albumId']);
-        if (!$album) {
-            return $this->json(['message' => 'Album non trouvé!'], Response::HTTP_NOT_FOUND);
-        }
-
         $song->setAlbum($album);
 
-        
-        if (isset($requestData['featuring']) && is_array($requestData['featuring'])) {
-            $featuring = new Featuring(); 
-            
+        if (isset($featuring)) {
+            $featuring = new Featuring();
+
             $featuring->setIdSong($song);
 
             $featuring->setIdFeaturing('1234567890');
 
-            foreach ($requestData['featuring'] as $artistId) {
+            foreach ($featuring as $artistId) {
                 $artist = $this->entityManager->getRepository(Artist::class)->find($artistId);
                 if ($artist) {
                     $featuring->addIdArtist($artist);
@@ -92,7 +112,40 @@ class SongController extends AbstractController
             }
             $this->entityManager->persist($featuring);
         }
-        
+
+        $streamFile = $request->files->get('stream');
+         
+        //if null return error
+        if (!$streamFile) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Erreur sur le fichier stream qui est manquant.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $extension = $streamFile->guessExtension();
+
+        // check if it's wav or mp3 file 
+        if ($extension !== 'wav' && $extension !== 'mp3') {
+            return $this->json([
+                'error' => true,
+                'message' => 'Erreur sur le format du fichier qui n\'est pas pris en compte.',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $streamDirectory = $this->getParameter('upload_directory') . '/' . $album->getTitle();
+
+        $streamFileName = 'stream_' . $song->getIdSong() . '.' . $extension;
+        try {
+            $streamFile->move($streamDirectory, $streamFileName);
+        } catch (FileException $e) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Error uploading stream file.',
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+        $streamPath = $streamDirectory . '/' . $streamFileName;
+        $song->setStream($streamPath);
 
         $this->entityManager->persist($song);
         $this->entityManager->flush();
@@ -100,66 +153,6 @@ class SongController extends AbstractController
         return $this->json([
             'song' => $song->songSerializer(),
             'message' => 'Song created successfully!',
-            'path' => 'src/Controller/SongController.php',
-        ]);
-    }
-
-
-    #[Route('/song/{id}', name: 'app_update_song', methods: ['PUT'])]
-    public function updateSong(Request $request, int $id): JsonResponse
-    {
-        $song = $this->entityManager->getRepository(Song::class)->find($id);
-
-        if (!$song) {
-            return $this->json([
-                'message' => 'Song not found',
-            ], JsonResponse::HTTP_NOT_FOUND);
-        }
-
-        $data = json_decode($request->getContent(), true);
-
-        if (isset($data['idSong'])) {
-            $song->setIdSong($data['idSong']);
-        }
-        if (isset($data['title'])) {
-            $song->setTitle($data['title']);
-        }
-        if (isset($data['stream'])) {
-            $song->setStream($data['stream']);
-        }
-        if (isset($data['cover'])) {
-            $song->setCover($data['cover']);
-        }
-        if (isset($data['visibility'])) {
-            $song->setVisibility($data['visibility']);
-        }
-
-        $this->entityManager->persist($song);
-        $this->entityManager->flush();
-
-        return $this->json([
-            'song' => $song->songSerializer(),
-            'message' => 'Song updated successfully!',
-            'path' => 'src/Controller/SongController.php',
-        ]);
-    }
-
-    #[Route('/song/{id}', name: 'app_delete_song', methods: ['DELETE'])]
-    public function deleteSong(int $id): JsonResponse
-    {
-        $song = $this->entityManager->getRepository(Song::class)->find($id);
-
-        if (!$song) {
-            return $this->json([
-                'message' => 'Song not found',
-            ], JsonResponse::HTTP_NOT_FOUND);
-        }
-
-        $this->entityManager->remove($song);
-        $this->entityManager->flush();
-
-        return $this->json([
-            'message' => 'Song deleted successfully!',
             'path' => 'src/Controller/SongController.php',
         ]);
     }
@@ -177,31 +170,6 @@ class SongController extends AbstractController
         return $this->json([
             'songs' => $serializedSongs,
             'message' => 'All songs retrieved successfully!',
-            'path' => 'src/Controller/SongController.php',
-        ]);
-    }
-
-    #[Route('/song/{id}', name: 'app_get_song_by_id', methods: ['GET'])]
-    public function getSongById(string $id): JsonResponse
-    {
-        if (!ctype_digit($id)) {
-            throw new BadRequestHttpException('Une ou plusieurs données obligatoire sont manquantes');
-        }
-
-        $id = (int)$id; 
-
-        $song = $this->entityManager->getRepository(Song::class)->find($id);
-
-        if (!$song) {
-            return $this->json([
-                'message' => 'Song not found',
-            ], JsonResponse::HTTP_NOT_FOUND);
-        }
-
-        return $this->json([
-            'song' => $song->songSerializer(),
-            'message' => 'Song retrieved successfully!',
-            'path' => 'src/Controller/SongController.php',
         ]);
     }
 }
