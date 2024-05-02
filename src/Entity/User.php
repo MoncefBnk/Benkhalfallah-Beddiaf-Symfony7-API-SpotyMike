@@ -302,7 +302,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             'email' => $this->getEmail(),
             'tel' => $this->getTel(),
             'sexe' =>  $sexe,
-            'artist' => $children ? $this->getArtist()->artistSerializer() : null,
+            'artist' => $children ? $this->getArtist()->artistSerializer() : [],
             'dateBirth'=>$dateBirthFormatted,
             'createdAt' => $this->getCreateAt(),
         ];

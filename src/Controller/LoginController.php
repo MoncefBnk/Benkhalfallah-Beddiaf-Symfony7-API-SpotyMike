@@ -143,8 +143,6 @@ class LoginController extends AbstractController
             }
         }
 
-      
-
         $existingUser = $this->repository->findOneBy(['email' => $requestData['email']]);
         if ($existingUser) {
             return $this->json([
@@ -176,7 +174,7 @@ class LoginController extends AbstractController
         $tel = $requestData['tel'] ?? null;
 
         //validate tel requirements 
-        if (!preg_match('/^0[1-9][0-9]{8}$/', $tel)) {
+        if (isset($requestData['tel']) && !preg_match('/^0[1-9][0-9]{8}$/', $requestData['tel'])) {
             return $this->json([
             'error' => true,
             'message' => 'Le format du numéro de téléphone est invalide.',
@@ -237,7 +235,7 @@ class LoginController extends AbstractController
         if (!empty($invalidData)) {
             return $this->json([
                 'error' => true,
-                'message' => 'Une ou plusieurs donnée sont erronées',
+                'message' => 'Des champs obligatoires sont manquants.',
             ], JsonResponse::HTTP_CONFLICT); // 409 Conflict
         }
 
