@@ -597,7 +597,7 @@ class AlbumController extends AbstractController
                 'message' => 'Vous n\'avez pas l\'autorisation pour accéder à cet album.'
             ], JsonResponse::HTTP_FORBIDDEN);
         }
-        
+        $album = $this->repository->find($albumId);
         // Paramètres invalides OK
         $requiredFields = ['title', 'categories', 'visibility', 'cover'];
         $invalidKeys = array_diff(array_keys($requestData), $requiredFields);
@@ -622,6 +622,7 @@ class AlbumController extends AbstractController
         // Catégories autorisées OK
         $allowedCategories = ['rap', 'r\'n\'b', 'gospel', 'jazz', 'soul', 'country', 'hip hop', 'le Mike'];
         if(isset($requestData['categories'])) {
+            $categories =  $requestData['categories'];
             $categoriesParsed = json_decode($categories, true);
             if (!is_array($categoriesParsed)) { 
                 $invalidData[] = 'categories';
@@ -670,48 +671,61 @@ class AlbumController extends AbstractController
             }
         }
 
-        // Erreur de décodage OK
-        $decodedData = base64_decode($file, true);
-        if(isset($requestData['cover'])) {
-            if ($decodedData === false || empty($requestData['cover'])) { 
-                return $this->json([
-                    'error' => true,
-                    'message' => 'Le serveur ne peut pas décoder le contenu base64 en fichier binaire.',
-                ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
-            }
-        }
-        
-        // Format de fichier OK
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->buffer($decodedData);
-        if(isset($requestData['cover'])) {
-            if ($mimeType != 'image/jpeg' && $mimeType != 'image/png') {
-                return $this->json([
-                    'error' => true,
-                    'message' => 'Erreur sur le format du fichier qui n\'est pas pris en compte.',
-                ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
-            }  
-        }
-      
-        // Taille du fichier OK
-        $minSize = 1000000; // 1 Mo
-        $maxSize = 7000000; // 7 Mo
-        if(isset($requestData['cover'])) {
+        if (isset($requestData['cover'])) {
+            $parameters = $request->getContent();
+            parse_str($parameters, $data);
 
-            if (strlen($requestData['cover']) > $maxSize || strlen($requestData['cover']) < $minSize) {
-                return $this->json([
-                    'error' => true,
-                    'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
-                ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+            $explodeData = explode(",", $data['cover']);
+            if (count($explodeData) == 2) {
+
+                //check the file format
+                $fileFormat = explode(';', $explodeData[0]);
+                //assign the file format to the variable
+                $fileFormat = explode('/', $fileFormat[0]);
+                //if not png or jpeg return error
+                if ($fileFormat[1] !== 'png' && $fileFormat[1] !== 'jpeg') {
+                    return $this->json([
+                        'error' => true,
+                        'message' => 'Erreur sur le format du fichier qui n\'est pas pris en compte.',
+                    ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                }
+                $file = base64_decode($explodeData[1]);
+
+               
+
+
+                if (strlen($file) < 1000000 || strlen($file) > 7000000) {
+                    return $this->json([
+                        'error' => true,
+                        'message' => 'Le fichier envoyé est trop ou pas assez volumineux. Vous devez respecter la taille entre 1Mb et 7Mb.',
+                    ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                }
+
+                try {
+                    $validationimd = getimagesizefromstring($file);
+                } catch (\Exception $e) {
+                    return $this->json([
+                        'error' => true,
+                        'message' => 'Le serveur ne peut pas décoder le contenu base64 en fichier binaire.',
+                    ], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+                }
+                $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail() . '/' . $requestData['title'] ;
+                if (!file_exists($chemin)) {
+                    mkdir($chemin);
+                } 
+
+                if (!file_exists($chemin)) {
+                    mkdir($chemin);
+                }
+                file_put_contents($chemin. '/cover.' . $fileFormat[1], $file);
+                $album->setCover($chemin . '/cover.' . $fileFormat[1]);
             }
         }
 
         if(isset($requestData['visibility'])) {
             $album->setVisibility($requestData['visibility']);
         }
-        if(isset($requestData['cover'])) {
-            $album->setCover($cover);
-        }
+        
         if(isset($requestData['title'])) {
             $album->setTitle($requestData['title']);
         }  
