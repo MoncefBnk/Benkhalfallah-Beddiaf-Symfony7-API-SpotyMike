@@ -253,6 +253,9 @@ class AlbumController extends AbstractController
                 // }
 
                 $chemin = $this->getParameter('upload_directory') . '/' . $user->getEmail();
+                if (!file_exists($chemin)) {
+                    mkdir($chemin);
+                }
                 file_put_contents($chemin . '/cover.' . $fileFormat[1], $file);
                 $album->setCover($chemin . '/cover.' . $fileFormat[1]);
             }
@@ -368,10 +371,9 @@ class AlbumController extends AbstractController
         ]);
     }
 
-    ////
     #[Route('/album/{id}', name: 'app_modification_album', methods: ['PUT'])]
     public function modificationAlbum(Request $request): JsonResponse
-    {   
+    {
         $requestData = $request->request->all();
         $albumId = $requestData['id'] ?? null;
 
@@ -420,7 +422,7 @@ class AlbumController extends AbstractController
         }
        
         // Catégories autorisées OK
-        $allowedCategories = ['rap', 'r\'n\'b', 'gospel', 'jazz', 'soul', 'country', 'hip hop', 'le Mick'];
+        $allowedCategories = ['rap', 'r\'n\'b', 'gospel', 'jazz', 'soul', 'country', 'hip hop', 'le Mike'];
         if(isset($requestData['categories'])) {
             $categoriesParsed = json_decode($categories, true);
             if (!is_array($categoriesParsed)) { 
@@ -529,7 +531,160 @@ class AlbumController extends AbstractController
         ]);
 
     }
-    //// 
+
+    #[Route('/album/search', name: 'app_search_album', methods: ['GET'])]
+    public function searchAlbum(Request $request): JsonResponse
+    {
+        // Paramètre de pagination invalide
+        $limit = $request->query->get('limit', 5);
+        $page =  $request->query->get('page');
+
+        if(asset(requestData['page'])) {
+            if (!is_numeric($limit) || $limit <= 0 || empty($page) || !is_numeric($page) || $page <= 0) {
+                return $this->json([
+                    'error' => true,
+                    'message' => 'Le paramètre de pagination est invalide. Veuillez fournir un numéro de page valide',
+                ], JsonResponse::HTTP_BAD_REQUEST);
+            }    
+        }
+
+        // Paramètres invalides
+        $requiredFields = ['currentPage', 'nom', 'fullname', 'label', 'year', 'featuring', 'category', 'limit'];
+        $invalidKeys = array_diff(array_keys($requestData), $requiredFields);
+        if (!empty($invalidKeys)) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Les paramètres fournis sont invalides. Veuillez vérifier les données soumises.',
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        // Catégorie invalide
+        $allowedCategories = ['rap', 'r\'n\'b', 'gospel', 'jazz', 'soul', 'country', 'hip hop', 'le Mike'];
+        if(isset($requestData['category'])) {
+            $categoriesParsed = json_decode($requestData['category'], true);
+            if (!is_array($categoriesParsed)) { 
+                $invalidData[] = 'category';
+            }
+            if (is_null($categoriesParsed)) {
+                $categoriesParsed = [];
+            }
+            $invalidCategories = [];
+            if (!is_null($categoriesParsed)) {
+                $invalidCategories = array_diff($categoriesParsed, $allowedCategories);
+            }
+            if (!empty($invalidCategories)) {
+                return $this->json([
+                    'error' => true,
+                    'message' => 'Les catégories ciblées sont invalides.',
+                ], JsonResponse::HTTP_BAD_REQUEST);
+            }
+        }
+
+        // Featurings invalides
+        $featuring = $album->getFeaturing(); 
+        if(asset(requestData['featuring'])) {
+            if (!is_array($featuring)) {
+                return $this->json([
+                    'error' => true,
+                    'message' => 'Les featurings ciblés sont invalides.',
+                ], JsonResponse::HTTP_BAD_REQUEST);
+            }
+        }   
+
+        $isAllStrings = array_reduce(requestData['featuring'], fn($carry, $item) => $carry && is_string($item), true);
+
+        if (!$isAllStrings) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Le champ "featuring" doit contenir uniquement des noms complets d\'artistes.',
+            ], 400);
+        }
+        // $albums = $this->entityManager->getRepository(Album::class)->findAll();
+        // $album = $this->entityManager->getRepository(Album::class)->find($albumId);
+        // $featurings = $this->entityManager->getRepository(Featuring::class)->findBy([
+        //     'idSong' => $album->getSongs(),
+        // ]);
+        // $serializedFeaturings = [];
+
+        // $featurings = $this->entityManager->getRepository(Featuring::class)->findBy([
+        //     'idSong' => $album->getSongs(),
+        // ]);
+
+        // $artistFullnames = [];
+
+        // foreach ($featurings as $featuring) {
+        //     foreach ($featuring->getIdArtist() as $artist) {
+        //         $artistFullnames[] = $artist->getFullname(); // Collecter les noms complets
+        //     }
+        // }
+
+
+        // $serializedAlbums = [];
+        // foreach ($albums as $album) {
+        //     // $serializedAlbums[] = $album->albumSerializer();
+        //     getFullname();
+        // }
+
+        if(asset(requestData['nom']))
+        {
+
+        }
+        //
+
+        if(isset($requestData['featuring'])) {
+            $featuringParsed = json_decode($requestData['featuring'], true);
+            if (!is_array($featuringParsed)) { 
+                $invalidData[] = 'featuring';
+                return $this->json([
+                    'error' => true,
+                    'message' => 'Les featurings ciblés sont invalides.',
+                ], JsonResponse::HTTP_BAD_REQUEST);
+            }
+        }
+
+        // Non authentifié
+        $dataMiddellware = $this->tokenVerifier->checkToken($request);
+        if (gettype($dataMiddellware) == 'boolean') {
+            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
+        }
+        if (!$dataMiddellware) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        // Aucun album trouvé
+        if(isset($requestData['nom'])) {
+            $albumExistTitle = $this->entityManager->getRepository(Album::class)->findOneBy(['title' => $requestData['title']]);
+            if (!$albumExistTitle) {
+                return $this->json([
+                    'error' => true,
+                    'message' => 'Aucun album trouvé pour la page demandée.',
+                ], JsonResponse::HTTP_NOT_FOUND);
+            }
+        }
+
+        // Années invalides
+        $year = $this->getCreateAt();
+        $formatedYear = $year ? $year->format('Y') : null;
+
+        $pattern = '/^\d{4}$/';
+
+        if (!preg_match($pattern, $formatedYear)) {
+            return $this->json([
+                'error' => true,
+                'message' => "L'année n'est pas valide.",
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
+
+        // Succès OK
+        return $this->json([
+            'error' => false,
+            'albums' => $album->albumSearchSerializer(),
+        ]);
+              
+    }
 
 
     #[Route('/album/{id}', name: 'app_delete_album', methods: ['DELETE'])]
