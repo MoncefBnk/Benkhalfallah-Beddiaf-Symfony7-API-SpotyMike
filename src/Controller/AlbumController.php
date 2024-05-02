@@ -34,6 +34,18 @@ class AlbumController extends AbstractController
     public function searchAlbum(Request $request): JsonResponse
     {
         // Paramètre de pagination invalide
+
+        $dataMiddellware = $this->tokenVerifier->checkToken($request);
+        if (gettype($dataMiddellware) == 'boolean') {
+            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
+        }
+        if (!$dataMiddellware) {
+            return $this->json([
+                'error' => true,
+                'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
+            ], JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
         $limit = $request->query->get('limit', 5);
         $page =  $request->query->get('page');
 
@@ -97,33 +109,33 @@ class AlbumController extends AbstractController
                 'message' => 'Le champ "featuring" doit contenir uniquement des noms complets d\'artistes.',
             ], 400);
         }
-        // $albums = $this->entityManager->getRepository(Album::class)->findAll();
-        // $album = $this->entityManager->getRepository(Album::class)->find($albumId);
-        // $featurings = $this->entityManager->getRepository(Featuring::class)->findBy([
-        //     'idSong' => $album->getSongs(),
-        // ]);
-        // $serializedFeaturings = [];
+        $albums = $this->entityManager->getRepository(Album::class)->findAll();
+        $album = $this->entityManager->getRepository(Album::class)->find($albumId);
+        $featurings = $this->entityManager->getRepository(Featuring::class)->findBy([
+            'idSong' => $album->getSongs(),
+        ]);
+        $serializedFeaturings = [];
 
-        // $featurings = $this->entityManager->getRepository(Featuring::class)->findBy([
-        //     'idSong' => $album->getSongs(),
-        // ]);
+        $featurings = $this->entityManager->getRepository(Featuring::class)->findBy([
+            'idSong' => $album->getSongs(),
+        ]);
 
-        // $artistFullnames = [];
+        $artistFullnames = [];
 
-        // foreach ($featurings as $featuring) {
-        //     foreach ($featuring->getIdArtist() as $artist) {
-        //         $artistFullnames[] = $artist->getFullname(); // Collecter les noms complets
-        //     }
-        // }
+        foreach ($featurings as $featuring) {
+            foreach ($featuring->getIdArtist() as $artist) {
+                $artistFullnames[] = $artist->getFullname(); // Collecter les noms complets
+            }
+        }
 
 
-        // $serializedAlbums = [];
-        // foreach ($albums as $album) {
-        //     // $serializedAlbums[] = $album->albumSerializer();
-        //     getFullname();
-        // }
+        $serializedAlbums = [];
+        foreach ($albums as $album) {
+            // $serializedAlbums[] = $album->albumSerializer();
+            getFullname();
+        }
 
-        //
+        
 
         if(isset($requestData['featuring'])) {
             $featuringParsed = json_decode($requestData['featuring'], true);
@@ -137,17 +149,7 @@ class AlbumController extends AbstractController
         }
 
         // Non authentifié
-        $dataMiddellware = $this->tokenVerifier->checkToken($request);
-        if (gettype($dataMiddellware) == 'boolean') {
-            return $this->json($this->tokenVerifier->sendJsonErrorToken($dataMiddellware));
-        }
-        if (!$dataMiddellware) {
-            return $this->json([
-                'error' => true,
-                'message' => 'Authentification requise. Vous devez être connecté pour effectuer cette action.',
-            ], JsonResponse::HTTP_UNAUTHORIZED);
-        }
-
+        
         // Aucun album trouvé
         if(isset($requestData['nom'])) {
             $albumExistTitle = $this->entityManager->getRepository(Album::class)->findOneBy(['title' => $requestData['title']]);
